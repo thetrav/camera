@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Camera Control</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="main-screen">
+    <header>
+      <h1>Camera</h1>
+    </header>
+
+    <div class="content">
+      <div class="video-panel">
+        <img id="video-feed" src="/cam/video.cgi" alt="Live video feed">
+        <div id="video-overlay" class="video-overlay">Connecting...</div>
+      </div>
+
+      <div class="controls-panel">
+        <section class="control-group">
+          <h2>Pan / Tilt</h2>
+          <div class="ptz-grid">
+            <button class="ptz-btn" data-dir="7" title="Up-Left">&#8598;</button>
+            <button class="ptz-btn" data-dir="0" title="Up">&#8593;</button>
+            <button class="ptz-btn" data-dir="1" title="Up-Right">&#8599;</button>
+            <button class="ptz-btn" data-dir="6" title="Left">&#8592;</button>
+            <button class="ptz-btn ptz-home" data-dir="8" title="Home">&#8857;</button>
+            <button class="ptz-btn" data-dir="2" title="Right">&#8594;</button>
+            <button class="ptz-btn" data-dir="5" title="Down-Left">&#8601;</button>
+            <button class="ptz-btn" data-dir="4" title="Down">&#8595;</button>
+            <button class="ptz-btn" data-dir="3" title="Down-Right">&#8600;</button>
+          </div>
+        </section>
+
+        <section class="control-group">
+          <h2>Controls</h2>
+          <div class="toggles">
+            <button id="audio-toggle" class="toggle-btn" title="Toggle audio mute">
+              <span class="toggle-label">Audio</span>
+              <span class="toggle-state">Unmuted</span>
+            </button>
+            <button id="night-toggle" class="toggle-btn" title="Toggle night mode (IR LED)">
+              <span class="toggle-label">Night Mode</span>
+              <span class="toggle-state">Off</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="control-group">
+          <h2>Snapshot</h2>
+          <button id="snapshot-btn" class="action-btn">Download Snapshot</button>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

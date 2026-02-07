@@ -1,0 +1,396 @@
+<html>
+<head>
+<link rel="stylesheet" rev="stylesheet" href="dlink.css%3Fcidx=1548408440.css" type="text/css">
+<link rel="stylesheet" rev="stylesheet" href="icons.css%3Fcidx=1548408440.css" type="text/css">
+<title>D-Link Corporation. | WIRELESS INTERNET CAMERA | HOME | H.264</title>
+<meta http-equiv="X-UA-Compatible" content="requiresActiveX=true">
+<meta content="text/html; charset=windows-1252" http-equiv=Content-Type>
+<meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
+<meta HTTP-EQUIV="Expires" CONTENT="-1">
+<script language="Javascript" SRC="function.js%3Fcidx=1548408440"></script>
+<script language="Javascript">
+//if (top != self) {
+//    top.location = self.location;
+//}
+</script>
+<script language="Javascript">
+var tInterval = "";
+var fInterval = "";
+var Browser = CheckBrower();
+function InitAUTO()
+{
+    frm0 = document.forms[0];
+    frm1 = document.forms[1];
+    frm0.WebLanguageSel.value = frm1.WebLanguage.value;
+    frm0.PanDegree.value = frm0.Pan.value;
+    frm0.TiltDegree.value = frm0.Tilt.value;
+}
+function ClickSubmit()
+{
+    javascript:document.forms[1].submit();
+}
+function Init() {
+    cvcs.RemoteHost = "192.168.20.14"
+    cvcs.RemoteWeb = "80"
+    cvcs.Timeout = 5
+    cvcs.AuthType = 1
+    cvcs.PreviewFrameRate = 1
+    cvcs.PreviewWidth = "640"
+    cvcs.PreviewHeight = "480"
+    cvcs.Algorithm = 1
+    cvcs.Group = 3352
+    cvcs.DeviceSerialNo = "YWRtaW46S2dZTnJmczlEVmZvNmtqdmViSzZId21MbVdFZ1l4"
+    cvcs.Play()
+    if (1) {
+       audioon.disabled = false;
+       audiooff.disabled = false;
+    } else {
+       audioon.disabled = true;
+       audiooff.disabled = true;
+    }
+    if (0 == 1) {
+       nightmodeon.disabled = false;
+       nightmodeoff.disabled = false;
+    } else {
+       nightmodeon.disabled = true;
+       nightmodeoff.disabled = true;
+    }
+    window.setTimeout("ShowRunningString()", 3000);
+}
+function Stop() {
+	window.clearInterval(tInterval);
+	window.clearInterval(fInterval);
+	cvcs.Stop()
+}
+function ShowRunningString() {
+    tInterval = window.setInterval("ShowTimeString()", 500);
+    fInterval = window.setInterval("ShowFrameRate()", 1000);
+}
+function ShowTimeString() {
+    CurrentTime.innerHTML = cvcs.TimeString;
+}
+function ShowFrameRate() {
+    var fFrameRate;
+    if (((1) && (0)) || (0))
+    {
+       fFrameRate = cvcs.FrameRate;
+    }
+    if ((1) && (0))
+    {
+       window.status = "Frame:" + fFrameRate.toString() + " fps"
+    }
+    if (0)
+    {
+       CurrentFrame.innerHTML = "Frame:" + fFrameRate.toString() + " fps"
+    }
+}
+function SubmitAudioOn()
+{
+    cvcs.Mute(0);
+    javascript:document.forms[2].submit();
+}
+function SubmitAudioOff()
+{
+    cvcs.Mute(1);
+    javascript:document.forms[3].submit();
+}
+function SubmitNightModeOn()
+{
+    javascript:document.forms[4].submit();
+}
+function SubmitNightModeOff()
+{
+    javascript:document.forms[5].submit();
+}
+function ptOver(type)
+{
+    document.getElementById("PTZ").className = type;
+}
+function ptOut()
+{
+	document.getElementById("PTZ").className = "ori";
+}
+function ptDown(type)
+{
+	document.getElementById("PTZ").className = type + "_d";
+}
+function ptUp(step,type)
+{
+    document.getElementById("PTZ").className = type;
+    frm0 = document.forms[0];
+    frm6 = document.forms[6];
+    frm6.PanSingleMoveDegree.value = frm0.PanDegree.value;
+    frm6.TiltSingleMoveDegree.value = frm0.TiltDegree.value;
+    if ((step >= 0) && (step <= 8))
+    { 
+        frm6.PanTiltSingleMove.value = step;
+        javascript:frm6.submit();
+    }
+}
+function SubmitGoToPosition()
+{
+    frm0 = document.forms[0];
+    frm7 = document.forms[7];
+    i = frm0.PresetList.selectedIndex;
+    sel = frm0.PresetList.options[i].text;
+    a = sel.indexOf(' ');
+
+    if (i > 0) {
+       if (a > 0) {
+          name = sel.substring(a+1,sel.length);
+          frm7.PanTiltPresetPositionMove.value = sel.substring(0,a);
+       } else {
+          frm7.PanTiltPresetPositionMove.value = sel;
+          name = "";
+       }
+       if (name.length > 0)
+       {
+          if (Browser == "IE1x")
+             window.setTimeout("StartGoToPosition()", 500);
+          else
+             javascript:frm7.submit();
+       }
+    }
+}
+function StartGoToPosition()
+{
+	javascript:document.forms[7].submit();
+}
+</script>
+</head>
+<body topmargin="1" leftmargin="0" rightmargin="0" bgcolor="#757575" onload="Init()" onunload="Stop()">
+<table id="header_container" border="0" cellpadding="5" cellspacing="0" width="838" align="center">
+<tr>
+<td width="100%">Product: <a href="http://www.dlink.com/" target="_blank">thetravcam</a></td>
+  <td align="right" nowrap></td>
+  <td align="right" nowrap>Firmware version: 1.16 &nbsp;</td>
+</tr>
+</table>
+<div id="title_container">
+<table id="topnav_container" border="0" cellpadding="0" cellspacing="0" width="838" align="center">
+<tr><td align="center" valign="middle"><img src="title.gif"></td></tr>
+</table>
+</div>
+<table id="index_container" border="0" cellpadding="2" cellspacing="1" width="838" align="center" bgcolor="#FFFFFF">
+<tr id="topnav_container">
+  <td><img src="devmodel.jpg%3Fcidx=DCS-5020L"></td>
+  <td id="topnavon"><a href="home.htm">Live Video</a></td>
+  <td id="topnavoff"><a href="wizard.htm">Setup</a></td>
+  <td id="topnavoff"><a href="advanced.htm">Maintenance</a></td>
+  <td id="topnavoff"><a href="stsdev.htm">Status</a></td>
+  <td id="topnavoff"><a href="support.htm">Help</a></td>
+  <td id="index_space" width="640" style="display:none;"></td>
+</tr>
+<tr><td colspan=6 height=1 bgcolor="#ffffff"></td></tr>
+</table>
+<table id="space_container" border="0" cellpadding="0" cellspacing="0" width="838" align="center" bgcolor="#FFFFFF" bordercolordark="#FFFFFF" height=50%>
+<tr><td height=1 bgcolor="#000000"></td></tr>
+<tr><td>
+<table id="data_container" border="0" cellpadding="0" cellspacing="0" width="838" align="center" bgcolor="#FFFFFF" bordercolordark="#FFFFFF" height=100%>
+<tr>
+  <td valign="top" width="131" height="100%" align="right">
+    <!-- === BEGIN SIDENAV === -->
+    <table border="0" cellpadding="1" cellspacing="1" height=100% bgcolor="#FFFFFF">
+    <tr id="sidenav_container"><td id="sidenavon"><a href="home.htm">Camera</a></td></tr>
+    <tr id="sidenav_container"><td id="sidenavoff"><a href="logout.htm">Logout</a></td></tr>
+    <tr id="sidenav_container" height=100%><td id="sidenavoff" valign="top">
+<FORM ACTION="http://192.168.20.14/aview.htm" METHOD="POST" autocomplete="off">
+      <table cellpadding="2" cellspacing="1" border="0" bordercolor="#FFFFFF">
+      <tr><td colspan=2 style="padding: 112px 0px 12px 0px;"><img name="PTZ" id="PTZ" class="ori" style="width:110px;height:110px;vertical-align:middle;cursor:pointer;background-image:url(pt_b.gif%3Fcidx=1548408440);background-repeat:no-repeat; margin:0 0 0 8px;" src="dot.gif" border="0" usemap="#MapMap" align="center"></td></tr>
+      <tr><td colspan=2><font color=white>Go To</font></td></tr>
+      <tr><td colspan=2><SELECT name="PresetList" size="1" style="width:120px;" onchange="SubmitGoToPosition()"><OPTION>-- Select One --</OPTION><OPTION>1</OPTION>
+<OPTION>2</OPTION>
+<OPTION>3</OPTION>
+<OPTION>4</OPTION>
+<OPTION>5</OPTION>
+<OPTION>6</OPTION>
+<OPTION>7</OPTION>
+<OPTION>8</OPTION>
+<OPTION>9</OPTION>
+<OPTION>10</OPTION>
+<OPTION>11</OPTION>
+<OPTION>12</OPTION>
+<OPTION>13</OPTION>
+<OPTION>14</OPTION>
+<OPTION>15</OPTION>
+<OPTION>16</OPTION>
+<OPTION>17</OPTION>
+<OPTION>18</OPTION>
+<OPTION>19</OPTION>
+<OPTION>20</OPTION>
+<OPTION>21</OPTION>
+<OPTION>22</OPTION>
+<OPTION>23</OPTION>
+<OPTION>24</OPTION>
+</SELECT></td></tr>
+      <tr><td colspan=2 style="height: 10px"></td></tr>
+      <tr><td><font color=white>Pan Step</font></td><td>
+          <input type="hidden" name="Pan" value="5">
+          <SELECT id="PanDegree" size="1">
+          <OPTION value="1">1</OPTION>
+          <OPTION value="2">2</OPTION>
+          <OPTION value="3">3</OPTION>
+          <OPTION value="4">4</OPTION>
+          <OPTION value="5">5</OPTION>
+          <OPTION value="10">10</OPTION>
+          <OPTION value="15">15</OPTION>
+          <OPTION value="20">20</OPTION>
+          <OPTION value="25">25</OPTION>
+          <OPTION value="30">30</OPTION>
+          </SELECT>
+      </td></tr>
+      <tr><td><font color=white>Tilt Step</font></td><td>
+          <input type="hidden" name="Tilt" value="5">
+          <SELECT id="TiltDegree" size="1">
+          <OPTION value="1">1</OPTION>
+          <OPTION value="2">2</OPTION>
+          <OPTION value="3">3</OPTION>
+          <OPTION value="4">4</OPTION>
+          <OPTION value="5">5</OPTION>
+          <OPTION value="10">10</OPTION>
+          <OPTION value="15">15</OPTION>
+          <OPTION value="20">20</OPTION>
+          <OPTION value="25">25</OPTION>
+          <OPTION value="30">30</OPTION>
+          </SELECT>
+      </td></tr>
+      </table>
+      <div style="padding: 20px 0px 0px 4px; font-size: 11px;"><font color=white>Language :</font></div>
+      &nbsp;<SELECT id="WebLanguageSel" size="1" onchange="document.forms[1].WebLanguage.value = this.value;ClickSubmit()">
+      <OPTION value="0" selected>English</OPTION>
+<OPTION value="1">&#31616;&#20307;&#20013;&#25991;</OPTION>
+<OPTION value="2">&#32321;&#39636;&#20013;&#25991;</OPTION>
+<OPTION value="3">Deutsch</OPTION>
+<OPTION value="4">fran&ccedil;ais</OPTION>
+<OPTION value="5">Italiano</OPTION>
+<OPTION value="6">Espa&ntilde;ol</OPTION>
+<OPTION value="7">&#54620;&#44397;&#51032;</OPTION>
+
+      </SELECT>
+</Form>
+<FORM ACTION="http://192.168.20.14/setSystemLanguage" METHOD="POST" autocomplete="off">
+    <input type="hidden" name="ReplySuccessPage" value="aview.htm">
+    <input type="hidden" name="ReplyErrorPage" value="aview.htm">
+    <input type="hidden" name="WebLanguage" value="0">
+    <input type="hidden" name="ConfigSystemLanguage" value="Save">
+</Form>
+    </td></tr>
+    </table>
+    <!-- === END SIDENAV === -->
+  </td>
+  <td valign="top" id="maincontent_container" height="420">
+    <table height="420" width=100% border="0" cellpadding="0" cellspacing="0" bgcolor="white">
+    <tr><td>
+    <div id="maincontent">
+      <!-- === BEGIN MAINCONTENT === -->
+      <div id="box_header"> 
+      <h1>Camera</h1>
+      This section shows your IP camera's live video. You can control your settings using the buttons below.<br>
+      Current resolution is 640x480.
+      </div>
+      <div class="box">
+        <h2>Video Compression Format</h2>
+        <img src="radioon.gif" border="0"><SPAN style="padding: 0px 3px 0px 0px;TEXT-DECORATION: none"></SPAN>H.264&nbsp;
+        <a href="jview.htm" style="padding: 0px 3px 0px 0px;TEXT-DECORATION: none" style="padding: 0px 3px 0px 0px;TEXT-DECORATION: none"><img src="radiooff.gif" border="0"></a>MJPEG&nbsp;
+      </div>
+      <div class="box">
+        <h2>Live Video</h2>
+        <table cellpadding="2" cellspacing="1" border="0" width="534" bgcolor="white" bordercolor="#FFFFFF">
+        <tr><td align="center">
+          <table BORDER=0 CELLSPACING=0 CELLPADDING=0 width="640">
+          <tr style="height: 17px">
+            <td nowrap width="50%" bgcolor=black><font color=white>thetravcam<br></font></td>
+            <td nowrap width="50%" bgcolor=black align=right valign=top nowrap>&nbsp;&nbsp;<font color=white><SPAN id="CurrentTime"></SPAN></font></td>
+          </tr>
+          <tr>
+            <td colspan=2 align=center bgcolor="white">
+              <OBJECT ID="cvcs" width=640 height=480
+              CLASSID="CLSID:76A99961-126B-48C5-AADB-E239EECF71D5"
+              codeBase="H264PlugLiteDL.cab#version=1,0,1,15">
+              </OBJECT>
+            </td>
+          </tr>
+          </table>
+        </td></tr>
+        <tr><td nowrap>&nbsp;&nbsp;Zoom :
+          <INPUT type="button" style="width:35px" value='x1' onClick="cvcs.Zoom(1)">
+          <INPUT type="button" style="width:35px" value='x2' onClick="cvcs.Zoom(2)">
+          <INPUT type="button" style="width:35px" value='x3' onClick="cvcs.Zoom(3)">
+          <INPUT type="button" style="width:35px" value='x4' onClick="cvcs.Zoom(4)">
+          &nbsp;&nbsp;Audio :
+          <INPUT id="audioon" type="button" style="width:40px" value='ON' onClick="SubmitAudioOn()">
+          <INPUT id="audiooff" type="button" style="width:40px" value='OFF' onClick="SubmitAudioOff()">
+          &nbsp;&nbsp;Night Mode :
+          <INPUT id="nightmodeon" type="button" style="width:40px" value='ON' onClick="SubmitNightModeOn()">
+          <INPUT id="nightmodeoff" type="button" style="width:40px" value='OFF' onClick="SubmitNightModeOff()">
+          &nbsp;&nbsp;<SPAN ID="CurrentFrame"></SPAN>
+        </td></tr>
+        </table>
+      </div>
+      <!-- === END MAINCONTENT === -->
+    </div>
+    </td></tr>
+    <tr height=100%><td></td></tr>
+    </table>
+  </td>
+</tr>
+</table>
+</td></tr></table>
+<table id="footer_container" border="0" cellpadding="0" cellspacing="0" width="838" align="center">
+<tr>
+  <td width="125" align="center">&nbsp;&nbsp;<img src="security.gif" width="114" height="35"></td>
+  <td width="10">&nbsp;</td>
+  <td>&nbsp;</td>
+</tr>
+</table><br>
+<div align="center"><FONT color=#ffffff>Copyright <script language="Javascript">Copyright(2012);</script>, D-Link Corporation / D-Link Systems, Inc. All rights reserved.</font></div>
+<br>
+</body>
+
+<form action="http://192.168.20.14/setControlAudio" METHOD="POST" autocomplete="off">
+<INPUT type="hidden" name="AudioMute" value="0">
+</form>
+ 
+<form action="http://192.168.20.14/setControlAudio" METHOD="POST" autocomplete="off">
+<INPUT type="hidden" name="AudioMute" value="1">
+</form>
+
+<form action="http://192.168.20.14/setControlDayNight" METHOD="POST" autocomplete="off">
+<INPUT type="hidden" name="IRLed" value="1">
+</form>
+ 
+<form action="http://192.168.20.14/setControlDayNight" METHOD="POST" autocomplete="off">
+<INPUT type="hidden" name="IRLed" value="0">
+</form>
+
+<form action="http://192.168.20.14/setControlPanTilt" METHOD="POST" autocomplete="off">
+<INPUT type="hidden" name="PanSingleMoveDegree">
+<INPUT type="hidden" name="TiltSingleMoveDegree">
+<INPUT type="hidden" name="PanTiltSingleMove">
+</form>
+
+<form action="http://192.168.20.14/setControlPanTilt" METHOD="POST" autocomplete="off">
+<INPUT type="hidden" name="PanTiltPresetPositionMove" value="0">
+</form>
+
+<script language="Javascript">
+InitAUTO();
+</script>
+</html>
+
+<FORM id="redir" name="redir" ACTION="index.html" METHOD="POST" autocomplete="off">
+<input type="hidden" name="ReplySuccessPage" value="">
+<input type="hidden" name="ReplyErrorPage" value="">
+</Form>
+
+<map name="MapMap" id="MapMap">
+<area shape="poly"   coords="0,36,14,15,35,1,35,20,28,25,24,30,20,36"       notitle="left_up"    onMouseOver='ptOver("left_up")'    onMouseDown='ptDown("left_up")'    onMouseOut='ptOut()' onMouseUp='ptUp(0,"left_up")'>
+<area shape="poly"   coords="35,-7,73,-11,74,20,66,17,56,16,44,17,35,20"    notitle="up"         onMouseOver='ptOver("up")'         onMouseDown='ptDown("up")'         onMouseOut='ptOut()' onMouseUp='ptUp(1,"up")'>
+<area shape="poly"   coords="74,1,94,14,108,36,90,36,85,30,80,24,73,20"     notitle="right_up"   onMouseOver='ptOver("right_up")'   onMouseDown='ptDown("right_up")'   onMouseOut='ptOut()' onMouseUp='ptUp(2,"right_up")'>
+<area shape="poly"   coords="22,73,0,73,0,36,20,36,17,44,16,52,17,60,18,68" notitle="left"       onMouseOver='ptOver("left")'       onMouseDown='ptDown("left")'       onMouseOut='ptOut()' onMouseUp='ptUp(3,"left")'>
+<area shape="circle" coords="55,55,15"                                      notitle="home"       onMouseOver='ptOver("home")'       onMouseDown='ptDown("home")'       onMouseOut='ptOut()' onMouseUp='ptUp(4,"home")'>
+<area shape="poly"   coords="113,36,113,73,88,73,93,64,94,55,94,46,91,36"   notitle="right"      onMouseOver='ptOver("right")'      onMouseDown='ptDown("right")'      onMouseOut='ptOut()' onMouseUp='ptUp(5,"right")'>
+<area shape="poly"   coords="21,73,0,73,15,96,36,108,36,88,30,83,25,78"     notitle="left_down"  onMouseOver='ptOver("left_down")'  onMouseDown='ptDown("left_down")'  onMouseOut='ptOut()' onMouseUp='ptUp(6,"left_down")'>
+<area shape="poly"   coords="36,87,36,111,74,114,74,86,66,90,55,91,44,90"   notitle="down"       onMouseOver='ptOver("down")'       onMouseDown='ptDown("down")'       onMouseOut='ptOut()' onMouseUp='ptUp(7,"down")'>
+<area shape="poly"   coords="74,86,74,108,95,94,110,73,88,73,86,78,79,83"   notitle="right_down" onMouseOver='ptOver("right_down")' onMouseDown='ptDown("right_down")' onMouseOut='ptOut()' onMouseUp='ptUp(8,"right_down")'>
+</map>

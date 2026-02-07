@@ -1,0 +1,198 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  min-height: 100vh;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Main screen */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #16213e;
+  border-bottom: 1px solid #333;
+}
+
+header h1 {
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Video panel */
+.video-panel {
+  position: relative;
+  flex: 1 1 640px;
+  background: #000;
+  border-radius: 6px;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+}
+
+.video-panel img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.video-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  font-size: 1.2rem;
+  color: #aaa;
+}
+
+/* Controls panel */
+.controls-panel {
+  flex: 0 0 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.control-group h2 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #888;
+  margin-bottom: 0.5rem;
+}
+
+/* PTZ grid */
+.ptz-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  max-width: 180px;
+}
+
+.ptz-btn {
+  aspect-ratio: 1;
+  border: 1px solid #333;
+  border-radius: 4px;
+  background: #16213e;
+  color: #e0e0e0;
+  font-size: 1.3rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ptz-btn:hover {
+  background: #0f3460;
+}
+
+.ptz-btn:active {
+  background: #1a4a7a;
+}
+
+.ptz-home {
+  background: #0f3460;
+}
+
+/* Toggles */
+.toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toggle-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #333;
+  border-radius: 4px;
+  background: #16213e;
+  color: #e0e0e0;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.toggle-btn:hover {
+  background: #1c2b4a;
+}
+
+.toggle-btn.active {
+  border-color: #0f3460;
+  background: #0f3460;
+}
+
+.toggle-label {
+  font-weight: 500;
+}
+
+.toggle-state {
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+.toggle-btn.active .toggle-state {
+  color: #7fbbff;
+}
+
+/* Action button */
+.action-btn {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #333;
+  border-radius: 4px;
+  background: #16213e;
+  color: #e0e0e0;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.action-btn:hover {
+  background: #1c2b4a;
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+  .content {
+    flex-direction: column;
+  }
+
+  .video-panel {
+    flex-basis: auto;
+  }
+
+  .controls-panel {
+    flex: 1 1 auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .control-group {
+    flex: 1 1 140px;
+  }
+}
