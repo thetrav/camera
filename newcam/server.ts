@@ -1,4 +1,5 @@
 import http from "node:http";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -42,7 +43,48 @@ if (!CAM_IP || !CAM_USER || !CAM_PASS) {
   process.exit(1);
 }
 
-const AUTH = "Basic " + Buffer.from(`${CAM_USER}:${CAM_PASS}`).toString("base64");
+const BASIC_AUTH = "Basic " + Buffer.from(`${CAM_USER}:${CAM_PASS}`).toString("base64");
+
+// --- Digest Auth ---
+
+function md5(s: string): string {
+  return crypto.createHash("md5").update(s).digest("hex");
+}
+
+function parseDigestChallenge(header: string): Record<string, string> {
+  const params: Record<string, string> = {};
+  const regex = /(\w+)=(?:"([^"]+)"|([^\s,]+))/g;
+  let match;
+  while ((match = regex.exec(header)) !== null) {
+    params[match[1]] = match[2] ?? match[3];
+  }
+  return params;
+}
+
+let nonceCount = 0;
+
+function buildDigestAuth(method: string, uri: string, challenge: Record<string, string>): string {
+  const realm = challenge.realm;
+  const nonce = challenge.nonce;
+  const qop = challenge.qop;
+  nonceCount++;
+  const nc = nonceCount.toString(16).padStart(8, "0");
+  const cnonce = crypto.randomBytes(16).toString("hex");
+
+  const ha1 = md5(`${CAM_USER}:${realm}:${CAM_PASS}`);
+  const ha2 = md5(`${method}:${uri}`);
+  const response = qop
+    ? md5(`${ha1}:${nonce}:${nc}:${cnonce}:${qop}:${ha2}`)
+    : md5(`${ha1}:${nonce}:${ha2}`);
+
+  let header = `Digest username="${CAM_USER}", realm="${realm}", nonce="${nonce}", uri="${uri}", response="${response}"`;
+  if (qop) {
+    header += `, qop=${qop}, nc=${nc}, cnonce="${cnonce}"`;
+  }
+  return header;
+}
+
+// --- Static files ---
 
 function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) {
   let urlPath = req.url === "/" ? "/index.html" : req.url!;
@@ -69,6 +111,8 @@ function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) {
   });
 }
 
+// --- Helpers ---
+
 function readBody(req: http.IncomingMessage): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
@@ -78,55 +122,76 @@ function readBody(req: http.IncomingMessage): Promise<Buffer> {
   });
 }
 
-function jsonResponse(res: http.ServerResponse, data: unknown, status = 200) {
-  const body = JSON.stringify(data);
-  res.writeHead(status, {
-    "Content-Type": "application/json",
-    "Content-Length": Buffer.byteLength(body),
+function readResponse(res: http.IncomingMessage): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    res.on("data", (chunk: Buffer) => chunks.push(chunk));
+    res.on("end", () => resolve(Buffer.concat(chunks)));
+    res.on("error", reject);
   });
-  res.end(body);
 }
+
+function camRequest(
+  method: string,
+  camPath: string,
+  headers: Record<string, string>,
+  body?: Buffer
+): Promise<http.IncomingMessage> {
+  return new Promise((resolve, reject) => {
+    const req = http.request(
+      { hostname: CAM_IP, port: 80, path: camPath, method, headers },
+      resolve
+    );
+    req.on("error", reject);
+    if (body) req.end(body);
+    else req.end();
+  });
+}
+
+// --- Proxy ---
 
 async function proxyToCamera(req: http.IncomingMessage, res: http.ServerResponse) {
   const camPath = req.url!.slice(4); // strip /cam
-  const body = req.method === "POST" ? await readBody(req) : undefined;
+  const method = req.method ?? "GET";
+  const body = method === "POST" ? await readBody(req) : undefined;
 
-  const headers: Record<string, string> = { Authorization: AUTH };
+  const headers: Record<string, string> = {
+    Authorization: BASIC_AUTH,
+    Referer: `http://${CAM_IP}/home.htm`,
+  };
   if (req.headers["content-type"]) {
     headers["Content-Type"] = req.headers["content-type"];
   }
 
-  const camReq = http.request(
-    {
-      hostname: CAM_IP,
-      port: 80,
-      path: camPath,
-      method: req.method,
-      headers,
-    },
-    (camRes) => {
-      res.writeHead(camRes.statusCode ?? 200, {
-        "Content-Type": camRes.headers["content-type"] || "application/octet-stream",
+  // First attempt with Basic auth
+  const camRes = await camRequest(method, camPath, headers, body);
+
+  // If 401 with Digest challenge, retry with Digest auth
+  if (camRes.statusCode === 401) {
+    await readResponse(camRes); // drain
+    const wwwAuth = camRes.headers["www-authenticate"] ?? "";
+    if (wwwAuth.startsWith("Digest")) {
+      const challenge = parseDigestChallenge(wwwAuth);
+      headers.Authorization = buildDigestAuth(method, camPath, challenge);
+      const camRes2 = await camRequest(method, camPath, headers, body);
+      res.writeHead(camRes2.statusCode ?? 200, {
+        "Content-Type": camRes2.headers["content-type"] || "application/octet-stream",
       });
-      camRes.pipe(res);
+      camRes2.pipe(res);
+      res.on("close", () => camRes2.destroy());
+      return;
     }
-  );
-
-  camReq.on("error", (err) => {
-    if (!res.headersSent) {
-      res.writeHead(502);
-      res.end(err.message);
-    }
-  });
-
-  res.on("close", () => camReq.destroy());
-
-  if (body) {
-    camReq.end(body);
-  } else {
-    camReq.end();
   }
+
+  // Stream the response (Basic auth worked, or non-401)
+  res.writeHead(camRes.statusCode ?? 200, {
+    "Content-Type": camRes.headers["content-type"] || "application/octet-stream",
+  });
+  camRes.pipe(res);
+  res.on("close", () => camRes.destroy());
 }
+
+// --- Server ---
 
 const server = http.createServer(async (req, res) => {
   const url = req.url ?? "/";
