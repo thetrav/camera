@@ -229,7 +229,10 @@ async function loadFtp() {
     $("#ftp-video-time-start").value = data.FTPScheduleTimeStartVideo || "00:00:00";
     $("#ftp-video-time-stop").value = data.FTPScheduleTimeStopVideo || "00:00:00";
 
-    updateFtpScheduleVisibility();
+
+
+    // Auto-browse the configured FTP path
+    browseFtp(data.FTPDirectoryPath || "/");
   } catch (err) {
     console.error("Failed to load FTP settings:", err);
     showStatus("#ftp-status", "Failed to load", true);
@@ -317,16 +320,133 @@ async function testFtp() {
   }
 }
 
-function updateFtpScheduleVisibility() {
-  const imgMode = $("#ftp-image-mode").value;
-  const imgOpts = $("#ftp-image-schedule-opts");
-  if (imgMode === "1") imgOpts.classList.remove("hidden");
-  else imgOpts.classList.add("hidden");
+async function writeTestFtp() {
+  const btn = $("#ftp-write-test");
+  btn.disabled = true;
+  showStatus("#ftp-write-test-status", "Writing...");
 
-  const vidMode = $("#ftp-video-mode").value;
-  const vidOpts = $("#ftp-video-schedule-opts");
-  if (vidMode === "1") vidOpts.classList.remove("hidden");
-  else vidOpts.classList.add("hidden");
+  try {
+    const res = await fetch("/api/ftp/write-test", { method: "POST" });
+    const result = await res.json();
+    if (result.ok) {
+      showStatus("#ftp-write-test-status", "File written");
+      // Refresh the file browser if it's been loaded
+      if (ftpCurrentPath) browseFtp(ftpCurrentPath);
+    } else {
+      showStatus("#ftp-write-test-status", result.error || "Write failed", true);
+    }
+  } catch (err) {
+    console.error("FTP write test failed:", err);
+    showStatus("#ftp-write-test-status", "Write failed", true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// --- FTP File Browser ---
+
+let ftpCurrentPath = "/";
+
+function formatFileSize(bytes) {
+  if (bytes == null) return "";
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+function renderBreadcrumb(ftpPath) {
+  const el = $("#ftp-breadcrumb");
+  const parts = ftpPath.split("/").filter(Boolean);
+  let html = '<span data-path="/">/</span>';
+  let accumulated = "/";
+  for (const part of parts) {
+    accumulated += part + "/";
+    html += ' <span data-path="' + accumulated + '">' + part + '</span> /';
+  }
+  el.innerHTML = html;
+  el.querySelectorAll("span").forEach((span) => {
+    span.addEventListener("click", () => browseFtp(span.dataset.path));
+  });
+}
+
+function isImageFile(name) {
+  return /\.(jpe?g|png|gif|bmp)$/i.test(name);
+}
+
+async function browseFtp(ftpPath) {
+  ftpCurrentPath = ftpPath || "/";
+  renderBreadcrumb(ftpCurrentPath);
+
+  const list = $("#ftp-file-list");
+  list.innerHTML = '<div class="ftp-loading">Loading...</div>';
+
+  try {
+    const res = await fetch("/api/ftp/files?path=" + encodeURIComponent(ftpCurrentPath));
+    if (!res.ok) {
+      const err = await res.json();
+      list.innerHTML = '<div class="ftp-loading">Error: ' + (err.error || "Failed") + '</div>';
+      return;
+    }
+    const entries = await res.json();
+    list.innerHTML = "";
+
+    // Add ".." entry to go up unless at root
+    if (ftpCurrentPath !== "/") {
+      const parentPath = ftpCurrentPath.replace(/\/[^/]+\/?$/, "/") || "/";
+      const upEntry = document.createElement("div");
+      upEntry.className = "ftp-file-entry";
+      upEntry.innerHTML = '<div class="ftp-file-icon">&#x1F519;</div><div class="ftp-file-name">..</div>';
+      upEntry.addEventListener("click", () => browseFtp(parentPath));
+      list.appendChild(upEntry);
+    }
+
+    // Sort: directories first, then files
+    entries.sort((a, b) => {
+      if (a.type !== b.type) return a.type === "dir" ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    for (const entry of entries) {
+      const el = document.createElement("div");
+      el.className = "ftp-file-entry";
+
+      const entryPath = ftpCurrentPath.replace(/\/?$/, "/") + entry.name;
+
+      if (entry.type === "dir") {
+        el.innerHTML =
+          '<div class="ftp-file-icon">&#x1F4C1;</div>' +
+          '<div class="ftp-file-name">' + entry.name + '</div>';
+        el.addEventListener("click", () => browseFtp(entryPath + "/"));
+      } else if (isImageFile(entry.name)) {
+        const downloadUrl = "/api/ftp/download?path=" + encodeURIComponent(entryPath);
+        el.innerHTML =
+          '<img class="ftp-thumbnail" src="' + downloadUrl + '" alt="' + entry.name + '" loading="lazy">' +
+          '<div class="ftp-file-name">' + entry.name + '</div>' +
+          '<div class="ftp-file-size">' + formatFileSize(entry.size) + '</div>' +
+          '<a class="ftp-download-link" href="' + downloadUrl + '" download>Download</a>';
+        el.style.cursor = "default";
+        // Prevent card click from doing anything for images
+        el.querySelector("a").addEventListener("click", (e) => e.stopPropagation());
+      } else {
+        const downloadUrl = "/api/ftp/download?path=" + encodeURIComponent(entryPath);
+        el.innerHTML =
+          '<div class="ftp-file-icon">&#x1F4C4;</div>' +
+          '<div class="ftp-file-name">' + entry.name + '</div>' +
+          '<div class="ftp-file-size">' + formatFileSize(entry.size) + '</div>' +
+          '<a class="ftp-download-link" href="' + downloadUrl + '" download>Download</a>';
+        el.querySelector("a").addEventListener("click", (e) => e.stopPropagation());
+      }
+
+      list.appendChild(el);
+    }
+
+    if (entries.length === 0 && ftpCurrentPath === "/") {
+      list.innerHTML = '<div class="ftp-loading">No files found</div>';
+    }
+  } catch (err) {
+    console.error("FTP browse error:", err);
+    list.innerHTML = '<div class="ftp-loading">Error: ' + err.message + '</div>';
+  }
 }
 
 // --- Helpers ---
@@ -378,7 +498,7 @@ $("#motion-schedule-mode").addEventListener("change", updateMotionScheduleVisibi
 $("#motion-save").addEventListener("click", saveMotion);
 
 // FTP events
-$("#ftp-image-mode").addEventListener("change", updateFtpScheduleVisibility);
-$("#ftp-video-mode").addEventListener("change", updateFtpScheduleVisibility);
 $("#ftp-save").addEventListener("click", saveFtp);
 $("#ftp-test").addEventListener("click", testFtp);
+$("#ftp-write-test").addEventListener("click", writeTestFtp);
+$("#ftp-browse").addEventListener("click", () => browseFtp(ftpCurrentPath));

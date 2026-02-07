@@ -175,7 +175,7 @@
             </select>
           </div>
 
-          <div id="ftp-video-schedule-opts" class="form-group hidden">
+          <div class="form-group">
             <label class="form-label">Days</label>
             <div class="day-checkboxes" id="ftp-video-days">
               <label><input type="checkbox" data-bit="1"> Mon</label>
@@ -226,7 +226,7 @@
             </select>
           </div>
 
-          <div id="ftp-image-schedule-opts" class="form-group hidden">
+          <div class="form-group">
             <label class="form-label">Days</label>
             <div class="day-checkboxes" id="ftp-image-days">
               <label><input type="checkbox" data-bit="1"> Mon</label>
@@ -264,11 +264,29 @@
           <span id="ftp-test-status" class="status-msg"></span>
         </section>
 
+        <section class="control-group">
+          <h2>Test FTP Server</h2>
+          <p class="form-hint">Write a text file to the FTP server directly (bypasses camera).</p>
+          <button id="ftp-write-test" class="action-btn">Write Test File</button>
+          <span id="ftp-write-test-status" class="status-msg"></span>
+        </section>
+
         <div class="form-actions">
           <button id="ftp-save" class="action-btn primary">Save</button>
           <span id="ftp-status" class="status-msg"></span>
         </div>
       </div>
+    </div>
+
+    <div class="ftp-browser-wrapper">
+      <section class="control-group ftp-browser">
+        <h2>FTP File Browser</h2>
+        <div class="ftp-browser-toolbar">
+          <div class="ftp-breadcrumb" id="ftp-breadcrumb">/</div>
+          <button id="ftp-browse" class="action-btn">Browse Files</button>
+        </div>
+        <div id="ftp-file-list" class="ftp-file-list"></div>
+      </section>
     </div>
   </div>
 

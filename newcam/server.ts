@@ -2,6 +2,8 @@ import http from "node:http";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { PassThrough } from "node:stream";
+import * as ftp from "basic-ftp";
 
 const PORT = 8080;
 const STATIC_DIR = path.dirname(new URL(import.meta.url).pathname);
@@ -17,7 +19,9 @@ const MIME_TYPES: Record<string, string> = {
 function loadEnv() {
   const envPath = path.join(STATIC_DIR, ".env");
   if (!fs.existsSync(envPath)) {
-    console.error("Missing .env file — create one with CAM_IP, CAM_USER, CAM_PASS");
+    console.error(
+      "Missing .env file — create one with CAM_IP, CAM_USER, CAM_PASS",
+    );
     process.exit(1);
   }
   const lines = fs.readFileSync(envPath, "utf-8").split("\n");
@@ -43,7 +47,8 @@ if (!CAM_IP || !CAM_USER || !CAM_PASS) {
   process.exit(1);
 }
 
-const BASIC_AUTH = "Basic " + Buffer.from(`${CAM_USER}:${CAM_PASS}`).toString("base64");
+const BASIC_AUTH =
+  "Basic " + Buffer.from(`${CAM_USER}:${CAM_PASS}`).toString("base64");
 
 // --- Digest Auth ---
 
@@ -63,7 +68,11 @@ function parseDigestChallenge(header: string): Record<string, string> {
 
 let nonceCount = 0;
 
-function buildDigestAuth(method: string, uri: string, challenge: Record<string, string>): string {
+function buildDigestAuth(
+  method: string,
+  uri: string,
+  challenge: Record<string, string>,
+): string {
   const realm = challenge.realm;
   const nonce = challenge.nonce;
   const qop = challenge.qop;
@@ -90,12 +99,12 @@ function camRequest(
   method: string,
   camPath: string,
   headers: Record<string, string>,
-  body?: Buffer
+  body?: Buffer,
 ): Promise<http.IncomingMessage> {
   return new Promise((resolve, reject) => {
     const req = http.request(
       { hostname: CAM_IP, port: 80, path: camPath, method, headers },
-      resolve
+      resolve,
     );
     req.on("error", reject);
     if (body) req.end(body);
@@ -126,7 +135,7 @@ async function digestRequest(
   camPath: string,
   referer: string,
   body?: string,
-  contentType?: string
+  contentType?: string,
 ): Promise<{ status: number; body: string }> {
   const headers: Record<string, string> = {
     Referer: `http://${CAM_IP}/${referer}`,
@@ -169,21 +178,24 @@ async function getSessionKey(htmPage: string): Promise<string> {
 // --- AES-128 Encryption (matching camera's function.js) ---
 
 const AES_Sbox = [
-  99,124,119,123,242,107,111,197,48,1,103,43,254,215,171,
-  118,202,130,201,125,250,89,71,240,173,212,162,175,156,164,114,192,183,253,
-  147,38,54,63,247,204,52,165,229,241,113,216,49,21,4,199,35,195,24,150,5,154,
-  7,18,128,226,235,39,178,117,9,131,44,26,27,110,90,160,82,59,214,179,41,227,
-  47,132,83,209,0,237,32,252,177,91,106,203,190,57,74,76,88,207,208,239,170,
-  251,67,77,51,133,69,249,2,127,80,60,159,168,81,163,64,143,146,157,56,245,
-  188,182,218,33,16,255,243,210,205,12,19,236,95,151,68,23,196,167,126,61,
-  100,93,25,115,96,129,79,220,34,42,144,136,70,238,184,20,222,94,11,219,224,
-  50,58,10,73,6,36,92,194,211,172,98,145,149,228,121,231,200,55,109,141,213,
-  78,169,108,86,244,234,101,122,174,8,186,120,37,46,28,166,180,198,232,221,
-  116,31,75,189,139,138,112,62,181,102,72,3,246,14,97,53,87,185,134,193,29,
-  158,225,248,152,17,105,217,142,148,155,30,135,233,206,85,40,223,140,161,
-  137,13,191,230,66,104,65,153,45,15,176,84,187,22,
+  99, 124, 119, 123, 242, 107, 111, 197, 48, 1, 103, 43, 254, 215, 171, 118,
+  202, 130, 201, 125, 250, 89, 71, 240, 173, 212, 162, 175, 156, 164, 114, 192,
+  183, 253, 147, 38, 54, 63, 247, 204, 52, 165, 229, 241, 113, 216, 49, 21, 4,
+  199, 35, 195, 24, 150, 5, 154, 7, 18, 128, 226, 235, 39, 178, 117, 9, 131, 44,
+  26, 27, 110, 90, 160, 82, 59, 214, 179, 41, 227, 47, 132, 83, 209, 0, 237, 32,
+  252, 177, 91, 106, 203, 190, 57, 74, 76, 88, 207, 208, 239, 170, 251, 67, 77,
+  51, 133, 69, 249, 2, 127, 80, 60, 159, 168, 81, 163, 64, 143, 146, 157, 56,
+  245, 188, 182, 218, 33, 16, 255, 243, 210, 205, 12, 19, 236, 95, 151, 68, 23,
+  196, 167, 126, 61, 100, 93, 25, 115, 96, 129, 79, 220, 34, 42, 144, 136, 70,
+  238, 184, 20, 222, 94, 11, 219, 224, 50, 58, 10, 73, 6, 36, 92, 194, 211, 172,
+  98, 145, 149, 228, 121, 231, 200, 55, 109, 141, 213, 78, 169, 108, 86, 244,
+  234, 101, 122, 174, 8, 186, 120, 37, 46, 28, 166, 180, 198, 232, 221, 116, 31,
+  75, 189, 139, 138, 112, 62, 181, 102, 72, 3, 246, 14, 97, 53, 87, 185, 134,
+  193, 29, 158, 225, 248, 152, 17, 105, 217, 142, 148, 155, 30, 135, 233, 206,
+  85, 40, 223, 140, 161, 137, 13, 191, 230, 66, 104, 65, 153, 45, 15, 176, 84,
+  187, 22,
 ];
-const AES_ShiftRowTab = [0,5,10,15,4,9,14,3,8,13,2,7,12,1,6,11];
+const AES_ShiftRowTab = [0, 5, 10, 15, 4, 9, 14, 3, 8, 13, 2, 7, 12, 1, 6, 11];
 
 let AES_Sbox_Inv: number[];
 let AES_ShiftRowTab_Inv: number[];
@@ -216,7 +228,10 @@ function AES_ShiftRows(state: number[], shifttab: number[]) {
 
 function AES_MixColumns(state: number[]) {
   for (let i = 0; i < 16; i += 4) {
-    const s0 = state[i], s1 = state[i + 1], s2 = state[i + 2], s3 = state[i + 3];
+    const s0 = state[i],
+      s1 = state[i + 1],
+      s2 = state[i + 2],
+      s3 = state[i + 3];
     const h = s0 ^ s1 ^ s2 ^ s3;
     state[i] ^= h ^ AES_xtime[s0 ^ s1];
     state[i + 1] ^= h ^ AES_xtime[s1 ^ s2];
@@ -314,7 +329,10 @@ function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) {
 
 // --- Camera Proxy ---
 
-async function proxyToCamera(req: http.IncomingMessage, res: http.ServerResponse) {
+async function proxyToCamera(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+) {
   const camPath = req.url!.slice(4); // strip /cam
   const method = req.method ?? "GET";
   const body = method === "POST" ? await readBody(req) : undefined;
@@ -339,7 +357,8 @@ async function proxyToCamera(req: http.IncomingMessage, res: http.ServerResponse
       headers.Authorization = buildDigestAuth(method, camPath, challenge);
       const camRes2 = await camRequest(method, camPath, headers, body);
       res.writeHead(camRes2.statusCode ?? 200, {
-        "Content-Type": camRes2.headers["content-type"] || "application/octet-stream",
+        "Content-Type":
+          camRes2.headers["content-type"] || "application/octet-stream",
       });
       camRes2.pipe(res);
       res.on("close", () => camRes2.destroy());
@@ -349,7 +368,8 @@ async function proxyToCamera(req: http.IncomingMessage, res: http.ServerResponse
 
   // Stream the response (Basic auth worked, or non-401)
   res.writeHead(camRes.statusCode ?? 200, {
-    "Content-Type": camRes.headers["content-type"] || "application/octet-stream",
+    "Content-Type":
+      camRes.headers["content-type"] || "application/octet-stream",
   });
   camRes.pipe(res);
   res.on("close", () => camRes.destroy());
@@ -375,7 +395,10 @@ async function handleGetMotion(res: http.ServerResponse) {
   res.end(JSON.stringify(result));
 }
 
-async function handlePostMotion(req: http.IncomingMessage, res: http.ServerResponse) {
+async function handlePostMotion(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+) {
   const body = (await readBody(req)).toString();
   const data = JSON.parse(body);
 
@@ -385,12 +408,30 @@ async function handlePostMotion(req: http.IncomingMessage, res: http.ServerRespo
   // Build form body with all fields
   const params = new URLSearchParams();
   params.set("MotionDetectionEnable", data.MotionDetectionEnable ?? "1");
-  params.set("MotionDetectionScheduleMode", data.MotionDetectionScheduleMode ?? "0");
-  params.set("MotionDetectionScheduleDay", data.MotionDetectionScheduleDay ?? "127");
-  params.set("MotionDetectionSensitivity", data.MotionDetectionSensitivity ?? "50");
-  params.set("MotionDetectionScheduleTimeStart", data.MotionDetectionScheduleTimeStart ?? "00:00:00");
-  params.set("MotionDetectionScheduleTimeStop", data.MotionDetectionScheduleTimeStop ?? "00:00:00");
-  params.set("MotionDetectionBlockSet", data.MotionDetectionBlockSet ?? "1111111111111111111111111");
+  params.set(
+    "MotionDetectionScheduleMode",
+    data.MotionDetectionScheduleMode ?? "0",
+  );
+  params.set(
+    "MotionDetectionScheduleDay",
+    data.MotionDetectionScheduleDay ?? "127",
+  );
+  params.set(
+    "MotionDetectionSensitivity",
+    data.MotionDetectionSensitivity ?? "50",
+  );
+  params.set(
+    "MotionDetectionScheduleTimeStart",
+    data.MotionDetectionScheduleTimeStart ?? "00:00:00",
+  );
+  params.set(
+    "MotionDetectionScheduleTimeStop",
+    data.MotionDetectionScheduleTimeStop ?? "00:00:00",
+  );
+  params.set(
+    "MotionDetectionBlockSet",
+    data.MotionDetectionBlockSet ?? "1111111111111111111111111",
+  );
   params.set("SessionKey", sessionKey);
   params.set("ReplySuccessPage", "");
   params.set("ReplyErrorPage", "");
@@ -401,7 +442,7 @@ async function handlePostMotion(req: http.IncomingMessage, res: http.ServerRespo
     "/setSystemMotion",
     "motion.htm",
     params.toString(),
-    "application/x-www-form-urlencoded"
+    "application/x-www-form-urlencoded",
   );
 
   // Read back to verify
@@ -418,7 +459,9 @@ async function handlePostMotion(req: http.IncomingMessage, res: http.ServerRespo
   }
 
   res.writeHead(200, { "Content-Type": "application/json" });
-  res.end(JSON.stringify({ saved: true, status: result.status, current: verified }));
+  res.end(
+    JSON.stringify({ saved: true, status: result.status, current: verified }),
+  );
 }
 
 // --- API: FTP ---
@@ -426,27 +469,32 @@ async function handlePostMotion(req: http.IncomingMessage, res: http.ServerRespo
 function parseFtpHtml(html: string): Record<string, string> {
   const result: Record<string, string> = {};
   // Parse hidden inputs and text/password inputs with name and value
-  const inputRegex = /<(?:INPUT|input|select|SELECT)[^>]*name="([^"]+)"[^>]*value="([^"]*)"/gi;
+  const inputRegex =
+    /<(?:INPUT|input|select|SELECT)[^>]*name="([^"]+)"[^>]*value="([^"]*)"/gi;
   let match;
   while ((match = inputRegex.exec(html)) !== null) {
     result[match[1]] = match[2];
   }
   // Also try value before name pattern
-  const inputRegex2 = /<(?:INPUT|input)[^>]*value="([^"]*)"[^>]*name="([^"]+)"/gi;
+  const inputRegex2 =
+    /<(?:INPUT|input)[^>]*value="([^"]*)"[^>]*name="([^"]+)"/gi;
   while ((match = inputRegex2.exec(html)) !== null) {
     if (!result[match[2]]) result[match[2]] = match[1];
   }
   // Parse checked radio buttons
-  const radioRegex = /<input[^>]*type=radio[^>]*name="([^"]+)"[^>]*value=(\d+)[^>]*checked/gi;
+  const radioRegex =
+    /<input[^>]*type=radio[^>]*name="([^"]+)"[^>]*value=(\d+)[^>]*checked/gi;
   while ((match = radioRegex.exec(html)) !== null) {
     result[match[1]] = match[2];
   }
   // Parse checked checkboxes (ScheduleFtp, ScheduleFtpVideo)
-  const checkRegex = /<input[^>]*type="checkbox"[^>]*id="(ScheduleFtp(?:Video)?)"[^>]*value=(\d+)[^>]*checked/gi;
+  const checkRegex =
+    /<input[^>]*type="checkbox"[^>]*id="(ScheduleFtp(?:Video)?)"[^>]*value=(\d+)[^>]*checked/gi;
   while ((match = checkRegex.exec(html)) !== null) {
     // Map checkbox id to hidden field name
     if (match[1] === "ScheduleFtp") result["FTPScheduleEnable"] = match[2];
-    else if (match[1] === "ScheduleFtpVideo") result["FTPScheduleEnableVideo"] = match[2];
+    else if (match[1] === "ScheduleFtpVideo")
+      result["FTPScheduleEnableVideo"] = match[2];
   }
   return result;
 }
@@ -476,7 +524,10 @@ function decryptPass(encrypted: string, sessionKey: string): string {
       AES_AddRoundKey(block, key.slice(k, k + 16));
       // AES_MixColumns_Inv
       for (let m = 0; m < 16; m += 4) {
-        const s0 = block[m], s1 = block[m + 1], s2 = block[m + 2], s3 = block[m + 3];
+        const s0 = block[m],
+          s1 = block[m + 1],
+          s2 = block[m + 2],
+          s3 = block[m + 3];
         const h = s0 ^ s1 ^ s2 ^ s3;
         const xh = AES_xtime[h];
         const h1 = AES_xtime[AES_xtime[xh ^ s0 ^ s2]] ^ h;
@@ -523,7 +574,10 @@ async function handleGetFtp(res: http.ServerResponse) {
   res.end(JSON.stringify(fields));
 }
 
-async function handlePostFtp(req: http.IncomingMessage, res: http.ServerResponse) {
+async function handlePostFtp(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+) {
   const body = (await readBody(req)).toString();
   const data = JSON.parse(body);
 
@@ -548,21 +602,51 @@ async function handlePostFtp(req: http.IncomingMessage, res: http.ServerResponse
   params.set("FTPScheduleDay", data.FTPScheduleDay ?? "0");
   params.set("FTPScheduleTimeStart", data.FTPScheduleTimeStart ?? "00:00:00");
   params.set("FTPScheduleTimeStop", data.FTPScheduleTimeStop ?? "00:00:00");
-  params.set("FTPScheduleVideoFrequencyMode", data.FTPScheduleVideoFrequencyMode ?? "0");
-  params.set("FTPScheduleFramePerSecond", data.FTPScheduleFramePerSecond ?? "1");
-  params.set("FTPScheduleSecondPerFrame", data.FTPScheduleSecondPerFrame ?? "1");
-  params.set("FTPScheduleBaseFileName", data.FTPScheduleBaseFileName ?? "DCS-5020L");
+  params.set(
+    "FTPScheduleVideoFrequencyMode",
+    data.FTPScheduleVideoFrequencyMode ?? "0",
+  );
+  params.set(
+    "FTPScheduleFramePerSecond",
+    data.FTPScheduleFramePerSecond ?? "1",
+  );
+  params.set(
+    "FTPScheduleSecondPerFrame",
+    data.FTPScheduleSecondPerFrame ?? "1",
+  );
+  params.set(
+    "FTPScheduleBaseFileName",
+    data.FTPScheduleBaseFileName ?? "DCS-5020L",
+  );
   params.set("FTPScheduleFileMode", data.FTPScheduleFileMode ?? "1");
-  params.set("FTPScheduleMaxFileSequenceNumber", data.FTPScheduleMaxFileSequenceNumber ?? "1024");
+  params.set(
+    "FTPScheduleMaxFileSequenceNumber",
+    data.FTPScheduleMaxFileSequenceNumber ?? "1024",
+  );
   params.set("FTPCreateFolderInterval", data.FTPCreateFolderInterval ?? "0");
   params.set("FTPScheduleEnableVideo", data.FTPScheduleEnableVideo ?? "0");
   params.set("FTPScheduleModeVideo", data.FTPScheduleModeVideo ?? "0");
   params.set("FTPScheduleDayVideo", data.FTPScheduleDayVideo ?? "0");
-  params.set("FTPScheduleTimeStartVideo", data.FTPScheduleTimeStartVideo ?? "00:00:00");
-  params.set("FTPScheduleTimeStopVideo", data.FTPScheduleTimeStopVideo ?? "00:00:00");
-  params.set("FTPScheduleBaseFileNameVideo", data.FTPScheduleBaseFileNameVideo ?? "DCS-5020L");
-  params.set("FTPScheduleVideoLimitSize", data.FTPScheduleVideoLimitSize ?? "2048");
-  params.set("FTPScheduleVideoLimitTime", data.FTPScheduleVideoLimitTime ?? "10");
+  params.set(
+    "FTPScheduleTimeStartVideo",
+    data.FTPScheduleTimeStartVideo ?? "00:00:00",
+  );
+  params.set(
+    "FTPScheduleTimeStopVideo",
+    data.FTPScheduleTimeStopVideo ?? "00:00:00",
+  );
+  params.set(
+    "FTPScheduleBaseFileNameVideo",
+    data.FTPScheduleBaseFileNameVideo ?? "DCS-5020L",
+  );
+  params.set(
+    "FTPScheduleVideoLimitSize",
+    data.FTPScheduleVideoLimitSize ?? "2048",
+  );
+  params.set(
+    "FTPScheduleVideoLimitTime",
+    data.FTPScheduleVideoLimitTime ?? "10",
+  );
   params.set("SessionKey", sessionKey);
   params.set("ConfigSystemFTP", " Save ");
 
@@ -571,7 +655,7 @@ async function handlePostFtp(req: http.IncomingMessage, res: http.ServerResponse
     "/setSystemFTP",
     "upload.htm",
     params.toString(),
-    "application/x-www-form-urlencoded"
+    "application/x-www-form-urlencoded",
   );
 
   res.writeHead(200, { "Content-Type": "application/json" });
@@ -588,11 +672,163 @@ async function handleTestFtp(res: http.ServerResponse) {
     "/setTestFTP",
     "upload.htm",
     params.toString(),
-    "application/x-www-form-urlencoded"
+    "application/x-www-form-urlencoded",
   );
 
   res.writeHead(200, { "Content-Type": "application/json" });
   res.end(JSON.stringify({ tested: true, status: result.status }));
+}
+
+// --- FTP File Browser ---
+
+async function getFtpCredentials(): Promise<{
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  basePath: string;
+  passive: boolean;
+}> {
+  const htmRes = await digestRequest("GET", "/upload.htm", "upload.htm");
+  const fields = parseFtpHtml(htmRes.body);
+
+  const sessionKeyMatch = htmRes.body.match(/SessionKey"\s*value="([^"]+)"/);
+  let password = fields.FTPPassword || "";
+  if (password && sessionKeyMatch) {
+    try {
+      password = decryptPass(password, sessionKeyMatch[1]);
+    } catch {
+      // Leave encrypted if decryption fails
+    }
+  }
+
+  return {
+    host: fields.FTPHostAddress || "",
+    port: parseInt(fields.FTPPortNumber || "21", 10),
+    user: fields.FTPUserName || "",
+    password,
+    basePath: fields.FTPDirectoryPath || "/",
+    passive: fields.FTPPassiveMode !== "0",
+  };
+}
+
+async function withFtpClient<T>(
+  fn: (client: ftp.Client, basePath: string) => Promise<T>,
+): Promise<T> {
+  const creds = await getFtpCredentials();
+  const client = new ftp.Client();
+  try {
+    await client.access({
+      host: creds.host,
+      port: creds.port,
+      user: creds.user,
+      password: creds.password,
+      secure: false,
+    });
+    if (!creds.passive) {
+      client.ftp.socket; // basic-ftp uses passive by default
+    }
+    return await fn(client, creds.basePath);
+  } finally {
+    client.close();
+  }
+}
+
+async function handleFtpWriteTest(res: http.ServerResponse) {
+  try {
+    await withFtpClient(async (client, basePath) => {
+      const timestamp = new Date().toISOString();
+      const content = `FTP write test from camera control server at ${timestamp}\n`;
+      const stream = new PassThrough();
+      stream.end(Buffer.from(content));
+      const remotePath =
+        basePath.replace(/\/?$/, "/") + `ftp-test-${Date.now()}.txt`;
+      console.log(`writing to `, remotePath);
+      await client.uploadFrom(stream, remotePath);
+    });
+    sendJson(res, 200, { ok: true });
+  } catch (err: any) {
+    console.error("FTP write test error:", err);
+    sendJson(res, 500, { error: err.message || "FTP write failed" });
+  }
+}
+
+async function handleFtpFiles(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+) {
+  const urlObj = new URL(req.url!, `http://${req.headers.host}`);
+  const requestedPath = urlObj.searchParams.get("path");
+
+  try {
+    const entries = await withFtpClient(async (client, basePath) => {
+      const browsePath = requestedPath || basePath;
+      const list = await client.list(browsePath);
+      return list.map((entry) => ({
+        name: entry.name,
+        type: entry.isDirectory ? "dir" : "file",
+        size: entry.size,
+        date: entry.modifiedAt?.toISOString() ?? entry.rawModifiedAt ?? null,
+      }));
+    });
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(entries));
+  } catch (err: any) {
+    console.error("FTP browse error:", err);
+    sendJson(res, 500, { error: err.message || "FTP connection failed" });
+  }
+}
+
+const EXT_MIME: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+  ".bmp": "image/bmp",
+  ".avi": "video/x-msvideo",
+  ".mp4": "video/mp4",
+  ".mkv": "video/x-matroska",
+  ".txt": "text/plain",
+};
+
+async function handleFtpDownload(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+) {
+  const urlObj = new URL(req.url!, `http://${req.headers.host}`);
+  const filePath = urlObj.searchParams.get("path");
+
+  if (!filePath) {
+    sendJson(res, 400, { error: "Missing path parameter" });
+    return;
+  }
+
+  try {
+    const buffer = await withFtpClient(async (client) => {
+      const stream = new PassThrough();
+      const chunks: Buffer[] = [];
+      stream.on("data", (chunk: Buffer) => chunks.push(chunk));
+      await client.downloadTo(stream, filePath);
+      return Buffer.concat(chunks);
+    });
+
+    const ext = path.extname(filePath).toLowerCase();
+    const contentType = EXT_MIME[ext] || "application/octet-stream";
+    const filename = path.basename(filePath);
+
+    const headers: Record<string, string> = { "Content-Type": contentType };
+    // Trigger download for non-image types
+    if (!contentType.startsWith("image/")) {
+      headers["Content-Disposition"] = `attachment; filename="${filename}"`;
+    }
+
+    res.writeHead(200, headers);
+    res.end(buffer);
+  } catch (err: any) {
+    console.error("FTP download error:", err);
+    sendJson(res, 500, { error: err.message || "FTP download failed" });
+  }
 }
 
 // --- Server ---
@@ -619,6 +855,12 @@ const server = http.createServer(async (req, res) => {
       await handlePostFtp(req, res);
     } else if (url === "/api/ftp/test" && method === "POST") {
       await handleTestFtp(res);
+    } else if (url === "/api/ftp/write-test" && method === "POST") {
+      await handleFtpWriteTest(res);
+    } else if (url.startsWith("/api/ftp/files") && method === "GET") {
+      await handleFtpFiles(req, res);
+    } else if (url.startsWith("/api/ftp/download") && method === "GET") {
+      await handleFtpDownload(req, res);
     } else if (method === "GET") {
       serveStatic(req, res);
     } else {

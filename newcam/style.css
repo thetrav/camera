@@ -265,7 +265,7 @@ header h1 {
 }
 
 .motion-cell {
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   cursor: pointer;
   transition: background 0.1s;
 }
@@ -275,11 +275,11 @@ header h1 {
 }
 
 .motion-cell.active {
-  background: rgba(220, 40, 40, 0.3);
+  background: rgba(40, 200, 60, 0.35);
 }
 
 .motion-cell.active:hover {
-  background: rgba(220, 40, 40, 0.45);
+  background: rgba(40, 200, 60, 0.5);
 }
 
 .grid-hint {
@@ -398,6 +398,117 @@ header h1 {
 /* FTP settings two-column */
 .ftp-settings {
   max-width: 500px;
+}
+
+/* FTP File Browser */
+.ftp-browser-wrapper {
+  width: 100%;
+  padding: 0 1rem 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.ftp-browser {
+  width: 100%;
+}
+
+.ftp-browser-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.ftp-browser-toolbar .action-btn {
+  width: auto;
+  white-space: nowrap;
+}
+
+.ftp-breadcrumb {
+  flex: 1;
+  font-size: 0.85rem;
+  color: #aaa;
+  background: #0d1528;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 0.4rem 0.5rem;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.ftp-breadcrumb span {
+  cursor: pointer;
+  color: #7fbbff;
+}
+
+.ftp-breadcrumb span:hover {
+  text-decoration: underline;
+}
+
+.ftp-file-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.5rem;
+}
+
+.ftp-file-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  border: 1px solid #333;
+  border-radius: 4px;
+  background: #16213e;
+  cursor: pointer;
+  text-align: center;
+  word-break: break-all;
+  transition: background 0.15s;
+}
+
+.ftp-file-entry:hover {
+  background: #1c2b4a;
+}
+
+.ftp-file-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.ftp-file-name {
+  font-size: 0.8rem;
+  color: #e0e0e0;
+}
+
+.ftp-file-size {
+  font-size: 0.7rem;
+  color: #888;
+}
+
+.ftp-thumbnail {
+  width: 120px;
+  height: 90px;
+  object-fit: contain;
+  border-radius: 3px;
+  background: #000;
+}
+
+.ftp-download-link {
+  font-size: 0.7rem;
+  color: #7fbbff;
+  text-decoration: none;
+}
+
+.ftp-download-link:hover {
+  text-decoration: underline;
+}
+
+.ftp-file-list .ftp-loading {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #888;
+  font-size: 0.85rem;
+  padding: 2rem;
 }
 
 /* Responsive */
