@@ -15,7 +15,7 @@ body {
   display: none !important;
 }
 
-/* Main screen */
+/* Header & Tabs */
 header {
   display: flex;
   justify-content: space-between;
@@ -23,6 +23,8 @@ header {
   padding: 0.75rem 1rem;
   background: #16213e;
   border-bottom: 1px solid #333;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 header h1 {
@@ -30,6 +32,43 @@ header h1 {
   font-weight: 500;
 }
 
+.tab-nav {
+  display: flex;
+  gap: 2px;
+}
+
+.tab-btn {
+  padding: 0.4rem 1rem;
+  border: 1px solid #333;
+  border-radius: 4px 4px 0 0;
+  background: #0d1528;
+  color: #888;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tab-btn:hover {
+  background: #1c2b4a;
+  color: #ccc;
+}
+
+.tab-btn.active {
+  background: #1a1a2e;
+  color: #e0e0e0;
+  border-bottom-color: #1a1a2e;
+}
+
+/* Tab content */
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* Content layout */
 .content {
   display: flex;
   flex-wrap: wrap;
@@ -175,6 +214,192 @@ header h1 {
   background: #1c2b4a;
 }
 
+.action-btn.primary {
+  background: #0f3460;
+  border-color: #1a4a7a;
+}
+
+.action-btn.primary:hover {
+  background: #1a4a7a;
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Settings panels */
+.settings-main {
+  flex: 1 1 500px;
+}
+
+.settings-panel {
+  flex: 0 0 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Motion grid overlay */
+.motion-grid-container {
+  position: relative;
+  background: #000;
+  border-radius: 6px;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+}
+
+.motion-snapshot {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.motion-grid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+}
+
+.motion-cell {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.motion-cell:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.motion-cell.active {
+  background: rgba(220, 40, 40, 0.3);
+}
+
+.motion-cell.active:hover {
+  background: rgba(220, 40, 40, 0.45);
+}
+
+.grid-hint {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 0.5rem;
+}
+
+/* Form elements */
+.form-group {
+  margin-bottom: 0.75rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.85rem;
+  color: #aaa;
+  margin-bottom: 0.25rem;
+}
+
+.form-label input[type="checkbox"] {
+  margin-right: 0.4rem;
+}
+
+.form-input,
+.form-select {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #333;
+  border-radius: 4px;
+  background: #0d1528;
+  color: #e0e0e0;
+  font-size: 0.85rem;
+}
+
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: #0f3460;
+}
+
+.form-select {
+  cursor: pointer;
+}
+
+.form-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+.form-hint {
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.form-actions .action-btn {
+  width: auto;
+  min-width: 100px;
+}
+
+/* Slider */
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.slider-row input[type="range"] {
+  flex: 1;
+  accent-color: #0f3460;
+}
+
+.slider-row span {
+  min-width: 2em;
+  text-align: right;
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+/* Day checkboxes */
+.day-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.day-checkboxes label {
+  font-size: 0.8rem;
+  color: #ccc;
+  cursor: pointer;
+}
+
+/* Status message */
+.status-msg {
+  font-size: 0.8rem;
+  color: #4caf50;
+}
+
+.status-msg.error {
+  color: #f44336;
+}
+
+/* FTP settings two-column */
+.ftp-settings {
+  max-width: 500px;
+}
+
 /* Responsive */
 @media (max-width: 700px) {
   .content {
@@ -185,8 +410,16 @@ header h1 {
     flex-basis: auto;
   }
 
-  .controls-panel {
+  .controls-panel,
+  .settings-panel {
     flex: 1 1 auto;
+  }
+
+  .settings-main {
+    flex-basis: auto;
+  }
+
+  .controls-panel {
     flex-direction: row;
     flex-wrap: wrap;
     gap: 1rem;
@@ -194,5 +427,10 @@ header h1 {
 
   .control-group {
     flex: 1 1 140px;
+  }
+
+  header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

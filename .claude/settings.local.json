@@ -4,7 +4,10 @@
       "Bash(curl:*)",
       "Bash(ls:*)",
       "Bash(grep:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node -e:*)"
     ]
   }
 }

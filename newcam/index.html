@@ -7,11 +7,17 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="main-screen">
-    <header>
-      <h1>Camera</h1>
-    </header>
+  <header>
+    <h1>Camera</h1>
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="live">Live View</button>
+      <button class="tab-btn" data-tab="motion">Motion Detection</button>
+      <button class="tab-btn" data-tab="ftp">FTP</button>
+    </nav>
+  </header>
 
+  <!-- Live View Tab -->
+  <div id="tab-live" class="tab-content active">
     <div class="content">
       <div class="video-panel">
         <img id="video-feed" src="/cam/video.cgi" alt="Live video feed">
@@ -52,6 +58,216 @@
           <h2>Snapshot</h2>
           <button id="snapshot-btn" class="action-btn">Download Snapshot</button>
         </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- Motion Detection Tab -->
+  <div id="tab-motion" class="tab-content">
+    <div class="content">
+      <div class="settings-main">
+        <div class="motion-grid-container">
+          <img class="motion-snapshot" src="/cam/image/jpeg.cgi" alt="Camera snapshot">
+          <div class="motion-grid" id="motion-grid"></div>
+        </div>
+        <p class="grid-hint">Click cells to toggle motion detection zones</p>
+      </div>
+
+      <div class="settings-panel">
+        <section class="control-group">
+          <h2>Motion Detection</h2>
+          <div class="form-group">
+            <label class="form-label">
+              <input type="checkbox" id="motion-enable"> Enable Motion Detection
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Sensitivity</label>
+            <div class="slider-row">
+              <input type="range" id="motion-sensitivity" min="0" max="100" value="50">
+              <span id="motion-sensitivity-val">50</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Schedule Mode</label>
+            <select id="motion-schedule-mode" class="form-select">
+              <option value="0">Always</option>
+              <option value="1">Schedule</option>
+            </select>
+          </div>
+
+          <div id="motion-schedule-opts" class="form-group hidden">
+            <label class="form-label">Days</label>
+            <div class="day-checkboxes">
+              <label><input type="checkbox" data-bit="1"> Mon</label>
+              <label><input type="checkbox" data-bit="2"> Tue</label>
+              <label><input type="checkbox" data-bit="3"> Wed</label>
+              <label><input type="checkbox" data-bit="4"> Thu</label>
+              <label><input type="checkbox" data-bit="5"> Fri</label>
+              <label><input type="checkbox" data-bit="6"> Sat</label>
+              <label><input type="checkbox" data-bit="0"> Sun</label>
+            </div>
+            <label class="form-label">Start Time</label>
+            <input type="text" id="motion-time-start" class="form-input" value="00:00:00" placeholder="HH:MM:SS">
+            <label class="form-label">Stop Time</label>
+            <input type="text" id="motion-time-stop" class="form-input" value="00:00:00" placeholder="HH:MM:SS">
+          </div>
+        </section>
+
+        <div class="form-actions">
+          <button id="motion-save" class="action-btn primary">Save</button>
+          <span id="motion-status" class="status-msg"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FTP Tab -->
+  <div id="tab-ftp" class="tab-content">
+    <div class="content">
+      <div class="settings-main ftp-settings">
+        <section class="control-group">
+          <h2>FTP Server</h2>
+          <div class="form-group">
+            <label class="form-label">Host</label>
+            <input type="text" id="ftp-host" class="form-input" placeholder="192.168.1.100">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Port</label>
+            <input type="number" id="ftp-port" class="form-input" value="21">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Username</label>
+            <input type="text" id="ftp-user" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" id="ftp-pass" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Path</label>
+            <input type="text" id="ftp-path" class="form-input" value="/">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Passive Mode</label>
+            <select id="ftp-passive" class="form-select">
+              <option value="1">Yes</option>
+              <option value="0">No</option>
+            </select>
+          </div>
+        </section>
+
+        <section class="control-group">
+          <h2>Video Upload</h2>
+          <div class="form-group">
+            <label class="form-label">
+              <input type="checkbox" id="ftp-video-enable"> Enable Video Upload
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Schedule Mode</label>
+            <select id="ftp-video-mode" class="form-select">
+              <option value="0">Always</option>
+              <option value="1">Schedule</option>
+              <option value="2">Motion/Sound Detection</option>
+            </select>
+          </div>
+
+          <div id="ftp-video-schedule-opts" class="form-group hidden">
+            <label class="form-label">Days</label>
+            <div class="day-checkboxes" id="ftp-video-days">
+              <label><input type="checkbox" data-bit="1"> Mon</label>
+              <label><input type="checkbox" data-bit="2"> Tue</label>
+              <label><input type="checkbox" data-bit="3"> Wed</label>
+              <label><input type="checkbox" data-bit="4"> Thu</label>
+              <label><input type="checkbox" data-bit="5"> Fri</label>
+              <label><input type="checkbox" data-bit="6"> Sat</label>
+              <label><input type="checkbox" data-bit="0"> Sun</label>
+            </div>
+            <label class="form-label">Start Time</label>
+            <input type="text" id="ftp-video-time-start" class="form-input" value="00:00:00" placeholder="HH:MM:SS">
+            <label class="form-label">Stop Time</label>
+            <input type="text" id="ftp-video-time-stop" class="form-input" value="00:00:00" placeholder="HH:MM:SS">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">File Name Prefix</label>
+            <input type="text" id="ftp-video-filename" class="form-input" value="DCS-5020L">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Size Limit (KB)</label>
+              <input type="number" id="ftp-video-size" class="form-input" value="2048" max="3072">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Time Limit (s)</label>
+              <input type="number" id="ftp-video-time" class="form-input" value="10" max="15">
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="settings-panel">
+        <section class="control-group">
+          <h2>Image Upload</h2>
+          <div class="form-group">
+            <label class="form-label">
+              <input type="checkbox" id="ftp-image-enable"> Enable Image Upload
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Schedule Mode</label>
+            <select id="ftp-image-mode" class="form-select">
+              <option value="0">Always</option>
+              <option value="1">Schedule</option>
+              <option value="2">Motion/Sound Detection</option>
+            </select>
+          </div>
+
+          <div id="ftp-image-schedule-opts" class="form-group hidden">
+            <label class="form-label">Days</label>
+            <div class="day-checkboxes" id="ftp-image-days">
+              <label><input type="checkbox" data-bit="1"> Mon</label>
+              <label><input type="checkbox" data-bit="2"> Tue</label>
+              <label><input type="checkbox" data-bit="3"> Wed</label>
+              <label><input type="checkbox" data-bit="4"> Thu</label>
+              <label><input type="checkbox" data-bit="5"> Fri</label>
+              <label><input type="checkbox" data-bit="6"> Sat</label>
+              <label><input type="checkbox" data-bit="0"> Sun</label>
+            </div>
+            <label class="form-label">Start Time</label>
+            <input type="text" id="ftp-image-time-start" class="form-input" value="00:00:00" placeholder="HH:MM:SS">
+            <label class="form-label">Stop Time</label>
+            <input type="text" id="ftp-image-time-stop" class="form-input" value="00:00:00" placeholder="HH:MM:SS">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Base File Name</label>
+            <input type="text" id="ftp-image-filename" class="form-input" value="DCS-5020L">
+          </div>
+          <div class="form-group">
+            <label class="form-label">File Mode</label>
+            <select id="ftp-image-filemode" class="form-select">
+              <option value="0">Overwrite</option>
+              <option value="1">Date/Time Suffix</option>
+              <option value="2">Sequence Number Suffix</option>
+            </select>
+          </div>
+        </section>
+
+        <section class="control-group">
+          <h2>Test FTP</h2>
+          <p class="form-hint">Send a test JPEG to the FTP server.</p>
+          <button id="ftp-test" class="action-btn">Test Connection</button>
+          <span id="ftp-test-status" class="status-msg"></span>
+        </section>
+
+        <div class="form-actions">
+          <button id="ftp-save" class="action-btn primary">Save</button>
+          <span id="ftp-status" class="status-msg"></span>
+        </div>
       </div>
     </div>
   </div>
