@@ -76,6 +76,7 @@ function takeSnapshot() {
 // --- Motion Detection ---
 
 let motionGrid = "1111111111111111111111111"; // 25 chars, 5x5
+let motionLoaded = false;
 
 function buildMotionGrid() {
   const container = $("#motion-grid");
@@ -100,6 +101,8 @@ function refreshSnapshot() {
 }
 
 async function loadMotion() {
+  if (motionLoaded) return;
+  motionLoaded = true;
   try {
     const res = await fetch("/api/motion");
     const data = await res.json();
@@ -186,7 +189,11 @@ function updateMotionScheduleVisibility() {
 
 // --- FTP ---
 
+let ftpLoaded = false;
+
 async function loadFtp() {
+  if (ftpLoaded) return;
+  ftpLoaded = true;
   try {
     const res = await fetch("/api/ftp");
     const data = await res.json();
