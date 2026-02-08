@@ -128,6 +128,52 @@ const EXT_MIME: Record<string, string> = {
   ".txt": "text/plain",
 };
 
+export async function handleFtpBasePath(
+  config: CameraConfig,
+  res: http.ServerResponse,
+) {
+  try {
+    const creds = await getFtpCredentials(config);
+    sendJson(res, 200, { basePath: creds.basePath || "/" });
+  } catch (err: any) {
+    console.error("FTP base path error:", err);
+    sendJson(res, 500, { error: err.message || "Failed to get FTP base path" });
+  }
+}
+
+export async function handleFtpDelete(
+  config: CameraConfig,
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+) {
+  const urlObj = new URL(req.url!, `http://${req.headers.host}`);
+  const filePath = urlObj.searchParams.get("path");
+  const type = urlObj.searchParams.get("type");
+
+  if (!filePath) {
+    sendJson(res, 400, { error: "Missing path parameter" });
+    return;
+  }
+  if (type !== "file" && type !== "dir") {
+    sendJson(res, 400, { error: "Missing or invalid type parameter (file|dir)" });
+    return;
+  }
+
+  try {
+    await withFtpClient(config, async (client) => {
+      if (type === "file") {
+        await client.remove(filePath);
+      } else {
+        await client.removeDir(filePath);
+      }
+    });
+    sendJson(res, 200, { ok: true });
+  } catch (err: any) {
+    console.error("FTP delete error:", err);
+    sendJson(res, 500, { error: err.message || "FTP delete failed" });
+  }
+}
+
 export async function handleFtpDownload(
   config: CameraConfig,
   req: http.IncomingMessage,
@@ -141,28 +187,47 @@ export async function handleFtpDownload(
     return;
   }
 
+  const ext = path.extname(filePath).toLowerCase();
+  const contentType = EXT_MIME[ext] || "application/octet-stream";
+  const filename = path.basename(filePath);
+  const isInline = contentType.startsWith("image/") || contentType.startsWith("video/");
+
   try {
-    const buffer = await withFtpClient(config, async (client) => {
-      const stream = new PassThrough();
-      const chunks: Buffer[] = [];
-      stream.on("data", (chunk: Buffer) => chunks.push(chunk));
-      await client.downloadTo(stream, filePath);
-      return Buffer.concat(chunks);
-    });
+    const creds = await getFtpCredentials(config);
+    const client = new ftp.Client();
+    try {
+      await client.access({
+        host: creds.host,
+        port: creds.port,
+        user: creds.user,
+        password: creds.password,
+        secure: false,
+      });
 
-    const ext = path.extname(filePath).toLowerCase();
-    const contentType = EXT_MIME[ext] || "application/octet-stream";
-    const filename = path.basename(filePath);
+      const size = await client.size(filePath).catch(() => undefined);
 
-    const headers: Record<string, string> = { "Content-Type": contentType };
-    if (!contentType.startsWith("image/")) {
-      headers["Content-Disposition"] = `attachment; filename="${filename}"`;
+      const headers: Record<string, string> = { "Content-Type": contentType };
+      if (!isInline) {
+        headers["Content-Disposition"] = `attachment; filename="${filename}"`;
+      } else {
+        headers["Content-Disposition"] = `inline; filename="${filename}"`;
+      }
+      if (size !== undefined) {
+        headers["Content-Length"] = String(size);
+      }
+
+      res.writeHead(200, headers);
+
+      const passthrough = new PassThrough();
+      passthrough.pipe(res);
+      await client.downloadTo(passthrough, filePath);
+    } finally {
+      client.close();
     }
-
-    res.writeHead(200, headers);
-    res.end(buffer);
   } catch (err: any) {
     console.error("FTP download error:", err);
-    sendJson(res, 500, { error: err.message || "FTP download failed" });
+    if (!res.headersSent) {
+      sendJson(res, 500, { error: err.message || "FTP download failed" });
+    }
   }
 }

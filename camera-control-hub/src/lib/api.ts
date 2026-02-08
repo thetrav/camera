@@ -114,3 +114,15 @@ export async function listFtpFiles(path: string): Promise<FtpFile[]> {
 export function getFtpDownloadUrl(path: string): string {
   return `/api/ftp/download?path=${encodeURIComponent(path)}`;
 }
+
+export async function getFtpBasePath(): Promise<{ basePath: string }> {
+  const res = await fetch("/api/ftp/base-path");
+  return res.json();
+}
+
+export async function deleteFtpItem(path: string, type: "file" | "dir"): Promise<{ ok: boolean }> {
+  const res = await fetch(`/api/ftp/files?path=${encodeURIComponent(path)}&type=${type}`, {
+    method: "DELETE",
+  });
+  return res.json();
+}
