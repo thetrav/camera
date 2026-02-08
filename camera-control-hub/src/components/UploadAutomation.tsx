@@ -300,18 +300,26 @@ export function UploadAutomation() {
               <div className="space-y-1.5">
                 <Label className="text-xs font-mono uppercase text-muted-foreground">Max Size (KB)</Label>
                 <Input
+                  type="number"
+                  min="1"
+                  max="3072"
                   value={vidLimitSize}
                   onChange={(e) => setVidLimitSize(e.target.value)}
                   className="font-mono text-sm bg-secondary border-border"
                 />
+                <p className="text-xs text-muted-foreground">Max 3072 KB</p>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-mono uppercase text-muted-foreground">Max Time (sec)</Label>
                 <Input
+                  type="number"
+                  min="1"
+                  max="15"
                   value={vidLimitTime}
                   onChange={(e) => setVidLimitTime(e.target.value)}
                   className="font-mono text-sm bg-secondary border-border"
                 />
+                <p className="text-xs text-muted-foreground">Max 15 seconds</p>
               </div>
             </div>
           </div>

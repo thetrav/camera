@@ -6,7 +6,7 @@ import { encryptPass, decryptPass } from "./crypto.js";
 export function parseFtpHtml(html: string): Record<string, string> {
   const result: Record<string, string> = {};
   const inputRegex =
-    /<(?:INPUT|input|select|SELECT)[^>]*name="([^"]+)"[^>]*value="([^"]*)"/gi;
+    /<(?:INPUT|input)[^>]*name="([^"]+)"[^>]*value="([^"]*)"/gi;
   let match;
   while ((match = inputRegex.exec(html)) !== null) {
     result[match[1]] = match[2];
@@ -14,6 +14,17 @@ export function parseFtpHtml(html: string): Record<string, string> {
   const inputRegex2 =
     /<(?:INPUT|input)[^>]*value="([^"]*)"[^>]*name="([^"]+)"/gi;
   while ((match = inputRegex2.exec(html)) !== null) {
+    if (!result[match[2]]) result[match[2]] = match[1];
+  }
+  // Handle unquoted value attributes (e.g. value=2048)
+  const unquotedRegex =
+    /<input[^>]*name="([^"]+)"[^>]*value=(\d+)/gi;
+  while ((match = unquotedRegex.exec(html)) !== null) {
+    if (!result[match[1]]) result[match[1]] = match[2];
+  }
+  const unquotedRegex2 =
+    /<input[^>]*value=(\d+)[^>]*name="([^"]+)"/gi;
+  while ((match = unquotedRegex2.exec(html)) !== null) {
     if (!result[match[2]]) result[match[2]] = match[1];
   }
   const radioRegex =
@@ -27,6 +38,19 @@ export function parseFtpHtml(html: string): Record<string, string> {
     if (match[1] === "ScheduleFtp") result["FTPScheduleEnable"] = match[2];
     else if (match[1] === "ScheduleFtpVideo")
       result["FTPScheduleEnableVideo"] = match[2];
+  }
+  // Parse <select> elements: find selected <option> value for each named select
+  const selectRegex =
+    /<select[^>]*name="([^"]+)"[^>]*>([\s\S]*?)<\/select>/gi;
+  while ((match = selectRegex.exec(html)) !== null) {
+    const name = match[1];
+    const body = match[2];
+    const selectedOpt =
+      /<option[^>]*value="([^"]*)"[^>]*selected/i.exec(body) ??
+      /<option[^>]*selected[^>]*value="([^"]*)"/i.exec(body);
+    if (selectedOpt) {
+      result[name] = selectedOpt[1];
+    }
   }
   return result;
 }
