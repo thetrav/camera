@@ -1,13 +1,17 @@
 import { useRef, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PTZControls } from "@/components/PTZControls";
-import { Maximize2, Volume2, VolumeX, Moon, Sun, Camera } from "lucide-react";
+import { RotateCw, Volume2, VolumeX, Moon, Sun, Camera } from "lucide-react";
 import { ptz, setAudioMute, setNightMode } from "@/lib/api";
 
 export function LiveView() {
   const imgRef = useRef<HTMLImageElement>(null);
   const [muted, setMuted] = useState(false);
   const [nightMode, setNightModeState] = useState(false);
+  const [rotation, setRotation] = useState(() => {
+    const saved = localStorage.getItem("liveview-rotation");
+    return saved ? Number(saved) : 0;
+  });
 
   const handlePtz = async (direction: number) => {
     await ptz(direction);
@@ -60,7 +64,8 @@ export function LiveView() {
             ref={imgRef}
             src="/cam/video.cgi"
             alt="Camera feed"
-            className="absolute inset-0 w-full h-full object-contain bg-black"
+            className="absolute inset-0 w-full h-full object-contain bg-black transition-transform duration-300"
+            style={{ transform: `rotate(${rotation}deg)` }}
             crossOrigin="anonymous"
           />
 
@@ -68,13 +73,28 @@ export function LiveView() {
           <div className="absolute top-3 left-3">
             <StatusBadge status="recording">LIVE</StatusBadge>
           </div>
-          <button
-            className="absolute top-3 right-3 h-8 w-8 rounded-md bg-card/80 backdrop-blur flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
-            onClick={handleSnapshot}
-            title="Snapshot"
-          >
-            <Camera className="h-4 w-4" />
-          </button>
+          <div className="absolute top-3 right-3 flex gap-1">
+            <button
+              className="h-8 w-8 rounded-md bg-card/80 backdrop-blur flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
+              onClick={() =>
+                setRotation((r) => {
+                  const next = (r + 90) % 360;
+                  localStorage.setItem("liveview-rotation", String(next));
+                  return next;
+                })
+              }
+              title="Rotate 90°"
+            >
+              <RotateCw className="h-4 w-4" />
+            </button>
+            <button
+              className="h-8 w-8 rounded-md bg-card/80 backdrop-blur flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
+              onClick={handleSnapshot}
+              title="Snapshot"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+          </div>
           <div className="absolute bottom-3 left-3 font-mono text-[10px] text-muted-foreground/60">
             DCS-5020L &bull; 640&times;480
           </div>
