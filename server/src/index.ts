@@ -42,6 +42,10 @@ const config: CameraConfig = {
   user: CAM_USER,
   pass: CAM_PASS,
   basicAuth: "Basic " + Buffer.from(`${CAM_USER}:${CAM_PASS}`).toString("base64"),
+  sshHost: process.env.SSH_HOST,
+  sshUser: process.env.SSH_USER,
+  sshKeyPath: process.env.SSH_KEY_PATH,
+  sshFtpRoot: process.env.SSH_FTP_ROOT,
 };
 
 const server = http.createServer(createRouter(config));

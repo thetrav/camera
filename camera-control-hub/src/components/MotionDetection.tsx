@@ -2,39 +2,34 @@ import { useEffect, useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
 import { Activity, Save, Loader2 } from "lucide-react";
-import { getMotionSettings, saveMotionSettings, type MotionSettings } from "@/lib/api";
-
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+import { getMotionSettings, saveMotionSettings } from "@/lib/api";
 
 export function MotionDetection() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [enabled, setEnabled] = useState(false);
   const [sensitivity, setSensitivity] = useState([50]);
+  const [blockSet, setBlockSet] = useState("1111111111111111111111111");
+
+  // Preserve schedule fields so save doesn't clobber them
   const [scheduleMode, setScheduleMode] = useState("0");
-  const [scheduleDays, setScheduleDays] = useState(127);
+  const [scheduleDays, setScheduleDays] = useState("127");
   const [timeStart, setTimeStart] = useState("00:00:00");
   const [timeStop, setTimeStop] = useState("00:00:00");
-  const [blockSet, setBlockSet] = useState("1111111111111111111111111");
 
   useEffect(() => {
     getMotionSettings().then((s) => {
       setEnabled(s.MotionDetectionEnable === "1");
       setSensitivity([parseInt(s.MotionDetectionSensitivity) || 50]);
+      setBlockSet(s.MotionDetectionBlockSet || "1111111111111111111111111");
       setScheduleMode(s.MotionDetectionScheduleMode);
-      setScheduleDays(parseInt(s.MotionDetectionScheduleDay) || 127);
+      setScheduleDays(s.MotionDetectionScheduleDay);
       setTimeStart(s.MotionDetectionScheduleTimeStart);
       setTimeStop(s.MotionDetectionScheduleTimeStop);
-      setBlockSet(s.MotionDetectionBlockSet || "1111111111111111111111111");
       setLoading(false);
     });
   }, []);
-
-  const toggleDay = (bit: number) => {
-    setScheduleDays((prev) => prev ^ (1 << bit));
-  };
 
   const toggleBlock = (idx: number) => {
     setBlockSet((prev) => {
@@ -49,11 +44,11 @@ export function MotionDetection() {
     await saveMotionSettings({
       MotionDetectionEnable: enabled ? "1" : "0",
       MotionDetectionSensitivity: String(sensitivity[0]),
+      MotionDetectionBlockSet: blockSet,
       MotionDetectionScheduleMode: scheduleMode,
-      MotionDetectionScheduleDay: String(scheduleDays),
+      MotionDetectionScheduleDay: scheduleDays,
       MotionDetectionScheduleTimeStart: timeStart,
       MotionDetectionScheduleTimeStop: timeStop,
-      MotionDetectionBlockSet: blockSet,
     });
     setSaving(false);
   };
@@ -71,7 +66,7 @@ export function MotionDetection() {
       <div>
         <h1 className="text-xl font-semibold">Motion Detection</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Configure motion detection triggers and zones.
+          Configure motion detection sensitivity and zones.
         </p>
       </div>
 
@@ -143,75 +138,6 @@ export function MotionDetection() {
             <p className="text-xs text-muted-foreground">
               Click cells to toggle detection zones. Highlighted = active.
             </p>
-          </div>
-
-          {/* Schedule */}
-          <div className="rounded-lg border border-border bg-card p-5 space-y-4">
-            <Label className="text-xs font-mono uppercase text-muted-foreground">
-              Schedule
-            </Label>
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="scheduleMode"
-                  checked={scheduleMode === "0"}
-                  onChange={() => setScheduleMode("0")}
-                  className="accent-primary"
-                />
-                Always
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="scheduleMode"
-                  checked={scheduleMode === "1"}
-                  onChange={() => setScheduleMode("1")}
-                  className="accent-primary"
-                />
-                Scheduled
-              </label>
-            </div>
-
-            {scheduleMode === "1" && (
-              <div className="space-y-3">
-                <div className="flex gap-2 flex-wrap">
-                  {DAYS.map((day, i) => (
-                    <button
-                      key={day}
-                      onClick={() => toggleDay(i)}
-                      className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
-                        scheduleDays & (1 << i)
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary text-muted-foreground"
-                      }`}
-                    >
-                      {day}
-                    </button>
-                  ))}
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-mono uppercase text-muted-foreground">Start</Label>
-                    <Input
-                      value={timeStart}
-                      onChange={(e) => setTimeStart(e.target.value)}
-                      placeholder="00:00:00"
-                      className="font-mono text-sm bg-secondary border-border"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-mono uppercase text-muted-foreground">Stop</Label>
-                    <Input
-                      value={timeStop}
-                      onChange={(e) => setTimeStop(e.target.value)}
-                      placeholder="00:00:00"
-                      className="font-mono text-sm bg-secondary border-border"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </>
       )}

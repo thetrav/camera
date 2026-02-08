@@ -4,6 +4,7 @@ import { proxyToCamera } from "./camera.js";
 import { handleGetMotion, handlePostMotion } from "./motion.js";
 import { handleGetFtp, handlePostFtp, handleTestFtp } from "./ftp-config.js";
 import { handleFtpWriteTest, handleFtpFiles, handleFtpDownload, handleFtpBasePath, handleFtpDelete } from "./ftp-browser.js";
+import { handleTranscode, handleTranscodeDir } from "./ssh-transcode.js";
 
 export function sendJson(res: http.ServerResponse, status: number, data: unknown) {
   res.writeHead(status, { "Content-Type": "application/json" });
@@ -38,6 +39,10 @@ export function createRouter(config: CameraConfig): http.RequestListener {
         await handleFtpDelete(config, req, res);
       } else if (url.startsWith("/api/ftp/download") && method === "GET") {
         await handleFtpDownload(config, req, res);
+      } else if (url === "/api/ftp/transcode" && method === "POST") {
+        await handleTranscode(config, req, res);
+      } else if (url === "/api/ftp/transcode-dir" && method === "POST") {
+        await handleTranscodeDir(config, req, res);
       } else {
         res.writeHead(404);
         res.end();

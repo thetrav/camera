@@ -2,15 +2,16 @@ import { useState } from "react";
 import {
   Video,
   FolderOpen,
-  Settings,
+  Server,
   Activity,
   Camera,
   ChevronLeft,
   ChevronRight,
+  Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Page = "live" | "ftp-config" | "ftp-browser" | "motion";
+type Page = "live" | "ftp-connection" | "ftp-browser" | "motion" | "upload-automation";
 
 interface AppSidebarProps {
   activePage: Page;
@@ -19,9 +20,10 @@ interface AppSidebarProps {
 
 const navItems: { id: Page; label: string; icon: React.ElementType }[] = [
   { id: "live", label: "Live View", icon: Video },
-  { id: "ftp-config", label: "FTP Settings", icon: Settings },
+  { id: "ftp-connection", label: "FTP Connection", icon: Server },
   { id: "ftp-browser", label: "FTP Browser", icon: FolderOpen },
   { id: "motion", label: "Motion Detection", icon: Activity },
+  { id: "upload-automation", label: "Upload Automation", icon: Clock },
 ];
 
 export function AppSidebar({ activePage, onNavigate }: AppSidebarProps) {

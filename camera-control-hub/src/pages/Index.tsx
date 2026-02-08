@@ -1,20 +1,22 @@
 import { useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { LiveView } from "@/components/LiveView";
-import { FTPConfig } from "@/components/FTPConfig";
+import { FTPConnection } from "@/components/FTPConnection";
 import { FTPBrowser } from "@/components/FTPBrowser";
 import { MotionDetection } from "@/components/MotionDetection";
+import { UploadAutomation } from "@/components/UploadAutomation";
 
-type Page = "live" | "ftp-config" | "ftp-browser" | "motion";
+type Page = "live" | "ftp-connection" | "ftp-browser" | "motion" | "upload-automation";
 
 const Index = () => {
   const [page, setPage] = useState<Page>("live");
 
   const content: Record<Page, React.ReactNode> = {
     live: <LiveView />,
-    "ftp-config": <FTPConfig />,
+    "ftp-connection": <FTPConnection />,
     "ftp-browser": <FTPBrowser />,
     motion: <MotionDetection />,
+    "upload-automation": <UploadAutomation />,
   };
 
   return (

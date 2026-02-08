@@ -126,3 +126,21 @@ export async function deleteFtpItem(path: string, type: "file" | "dir"): Promise
   });
   return res.json();
 }
+
+export async function transcodeVideo(path: string): Promise<{ ok: boolean; mp4Path?: string; error?: string }> {
+  const res = await fetch("/api/ftp/transcode", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path }),
+  });
+  return res.json();
+}
+
+export async function transcodeDir(path: string): Promise<{ ok: boolean; converted: number; skipped: number; errors: string[] }> {
+  const res = await fetch("/api/ftp/transcode-dir", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path }),
+  });
+  return res.json();
+}

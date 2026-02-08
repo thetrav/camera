@@ -48,7 +48,7 @@ async function withFtpClient<T>(
   fn: (client: ftp.Client, basePath: string) => Promise<T>,
 ): Promise<T> {
   const creds = await getFtpCredentials(config);
-  const client = new ftp.Client();
+  const client = new ftp.Client(300_000); // 5 min timeout for large files
   try {
     await client.access({
       host: creds.host,
@@ -193,37 +193,26 @@ export async function handleFtpDownload(
   const isInline = contentType.startsWith("image/") || contentType.startsWith("video/");
 
   try {
-    const creds = await getFtpCredentials(config);
-    const client = new ftp.Client();
-    try {
-      await client.access({
-        host: creds.host,
-        port: creds.port,
-        user: creds.user,
-        password: creds.password,
-        secure: false,
-      });
+    const buffer = await withFtpClient(config, async (client) => {
+      const stream = new PassThrough();
+      const chunks: Buffer[] = [];
+      stream.on("data", (chunk: Buffer) => chunks.push(chunk));
+      await client.downloadTo(stream, filePath);
+      return Buffer.concat(chunks);
+    });
 
-      const size = await client.size(filePath).catch(() => undefined);
-
-      const headers: Record<string, string> = { "Content-Type": contentType };
-      if (!isInline) {
-        headers["Content-Disposition"] = `attachment; filename="${filename}"`;
-      } else {
-        headers["Content-Disposition"] = `inline; filename="${filename}"`;
-      }
-      if (size !== undefined) {
-        headers["Content-Length"] = String(size);
-      }
-
-      res.writeHead(200, headers);
-
-      const passthrough = new PassThrough();
-      passthrough.pipe(res);
-      await client.downloadTo(passthrough, filePath);
-    } finally {
-      client.close();
+    const headers: Record<string, string> = {
+      "Content-Type": contentType,
+      "Content-Length": String(buffer.length),
+    };
+    if (!isInline) {
+      headers["Content-Disposition"] = `attachment; filename="${filename}"`;
+    } else {
+      headers["Content-Disposition"] = `inline; filename="${filename}"`;
     }
+
+    res.writeHead(200, headers);
+    res.end(buffer);
   } catch (err: any) {
     console.error("FTP download error:", err);
     if (!res.headersSent) {

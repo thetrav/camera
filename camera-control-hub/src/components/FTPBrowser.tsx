@@ -11,9 +11,11 @@ import {
   Loader2,
   File,
   Trash2,
+  Play,
   X,
+  Film,
 } from "lucide-react";
-import { listFtpFiles, getFtpDownloadUrl, getFtpBasePath, deleteFtpItem, type FtpFile } from "@/lib/api";
+import { listFtpFiles, getFtpDownloadUrl, getFtpBasePath, deleteFtpItem, transcodeVideo, transcodeDir, type FtpFile } from "@/lib/api";
 
 interface TreeNode {
   name: string;
@@ -24,6 +26,7 @@ interface TreeNode {
   children?: TreeNode[];
   loading?: boolean;
   expanded?: boolean;
+  transcoding?: boolean;
 }
 
 function formatSize(bytes: number): string {
@@ -67,8 +70,9 @@ export function FTPBrowser() {
   const [roots, setRoots] = useState<TreeNode[]>([]);
   const [basePath, setBasePath] = useState<string>("/");
   const [initialLoading, setInitialLoading] = useState(true);
-  const [videoModal, setVideoModal] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<TreeNode | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [batchStatus, setBatchStatus] = useState<{ path: string; message: string } | null>(null);
 
   // Update a node in the tree by path
   const updateNode = useCallback(
@@ -178,12 +182,68 @@ export function FTPBrowser() {
     }
   };
 
-  const handleFileClick = (node: TreeNode) => {
+  const handleFileClick = async (node: TreeNode) => {
     if (node.type === "dir") {
       toggleExpand(node);
-    } else if (isVideo(node.name)) {
-      setVideoModal(node.path);
+      return;
     }
+
+    if (/\.mp4$/i.test(node.name)) {
+      setVideoUrl(getFtpDownloadUrl(node.path));
+      return;
+    }
+
+    if (/\.avi$/i.test(node.name)) {
+      // Transcode AVI to MP4 then play
+      setRoots((prev) =>
+        updateNode(prev, node.path, (n) => ({ ...n, transcoding: true })),
+      );
+      try {
+        const result = await transcodeVideo(node.path);
+        if (result.ok && result.mp4Path) {
+          setVideoUrl(getFtpDownloadUrl(result.mp4Path));
+          // Replace AVI node with MP4 node in the tree
+          const mp4Name = node.name.replace(/\.avi$/i, ".mp4");
+          setRoots((prev) =>
+            updateNode(prev, node.path, (n) => ({
+              ...n,
+              name: mp4Name,
+              path: result.mp4Path!,
+              transcoding: false,
+            })),
+          );
+          return;
+        } else {
+          console.error("Transcode failed:", result.error);
+        }
+      } catch (err) {
+        console.error("Transcode error:", err);
+      }
+      setRoots((prev) =>
+        updateNode(prev, node.path, (n) => ({ ...n, transcoding: false })),
+      );
+    }
+  };
+
+  const handleBatchConvert = async (node: TreeNode) => {
+    setBatchStatus({ path: node.path, message: "Converting..." });
+    try {
+      const result = await transcodeDir(node.path);
+      if (result.ok) {
+        setBatchStatus({
+          path: node.path,
+          message: `Done: ${result.converted} converted, ${result.skipped} skipped${result.errors.length ? `, ${result.errors.length} errors` : ""}`,
+        });
+        // Refresh the directory to show new mp4 files
+        loadChildren(node.path, setRoots);
+      } else {
+        setBatchStatus({ path: node.path, message: "Batch convert failed" });
+      }
+    } catch (err) {
+      console.error("Batch convert error:", err);
+      setBatchStatus({ path: node.path, message: "Batch convert error" });
+    }
+    setTimeout(() => setBatchStatus(null), 5000);
   };
 
   const handleDelete = async (node: TreeNode) => {
@@ -267,6 +327,8 @@ export function FTPBrowser() {
               onToggle={toggleExpand}
               onClick={handleFileClick}
               onDelete={(node) => setConfirmDelete(node)}
+              onBatchConvert={handleBatchConvert}
+              batchStatus={batchStatus}
             />
           )}
         </div>
@@ -274,27 +336,27 @@ export function FTPBrowser() {
 
       <div className="text-xs font-mono text-muted-foreground">{countNodes(roots)} items</div>
 
-      {/* Video modal */}
-      {videoModal && (
+      {/* Video player modal */}
+      {videoUrl && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
-          onClick={() => setVideoModal(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+          onClick={() => setVideoUrl(null)}
         >
           <div
-            className="relative bg-card rounded-lg p-2 max-w-3xl w-full mx-4"
+            className="relative max-w-4xl w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              className="absolute -top-3 -right-3 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/80 z-10"
-              onClick={() => setVideoModal(null)}
+              className="absolute -top-10 right-0 text-white hover:text-white/80"
+              onClick={() => setVideoUrl(null)}
             >
-              <X className="h-4 w-4" />
+              <X className="h-6 w-6" />
             </button>
             <video
-              src={getFtpDownloadUrl(videoModal)}
+              src={videoUrl}
               controls
               autoPlay
-              className="w-full rounded"
+              className="w-full rounded-lg"
             />
           </div>
         </div>
@@ -342,12 +404,16 @@ function TreeRows({
   onToggle,
   onClick,
   onDelete,
+  onBatchConvert,
+  batchStatus,
 }: {
   nodes: TreeNode[];
   depth: number;
   onToggle: (node: TreeNode) => void;
   onClick: (node: TreeNode) => void;
   onDelete: (node: TreeNode) => void;
+  onBatchConvert: (node: TreeNode) => void;
+  batchStatus: { path: string; message: string } | null;
 }) {
   // Sort: dirs first, then files, alphabetically within each group
   const sorted = [...nodes].sort((a, b) => {
@@ -365,6 +431,8 @@ function TreeRows({
           onToggle={onToggle}
           onClick={onClick}
           onDelete={onDelete}
+          onBatchConvert={onBatchConvert}
+          batchStatus={batchStatus}
         />
       ))}
     </>
@@ -377,12 +445,16 @@ function TreeRow({
   onToggle,
   onClick,
   onDelete,
+  onBatchConvert,
+  batchStatus,
 }: {
   node: TreeNode;
   depth: number;
   onToggle: (node: TreeNode) => void;
   onClick: (node: TreeNode) => void;
   onDelete: (node: TreeNode) => void;
+  onBatchConvert: (node: TreeNode) => void;
+  batchStatus: { path: string; message: string } | null;
 }) {
   const indent = depth * 20;
 
@@ -429,6 +501,37 @@ function TreeRow({
           {node.type === "file" ? formatDate(node.date) : ""}
         </span>
         <div className="flex items-center gap-1">
+          {node.type === "file" && node.transcoding && (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+          )}
+          {node.type === "file" && isVideo(node.name) && !node.transcoding && (
+            <button
+              className="h-6 w-6 rounded flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClick(node);
+              }}
+              title="Play video"
+            >
+              <Play className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {node.type === "dir" && (
+            <button
+              className="h-6 w-6 rounded flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                onBatchConvert(node);
+              }}
+              title="Convert videos in folder"
+            >
+              {batchStatus?.path === node.path ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Film className="h-3.5 w-3.5" />
+              )}
+            </button>
+          )}
           {node.type === "file" && (
             <a
               href={getFtpDownloadUrl(node.path)}
@@ -457,6 +560,8 @@ function TreeRow({
           onToggle={onToggle}
           onClick={onClick}
           onDelete={onDelete}
+          onBatchConvert={onBatchConvert}
+          batchStatus={batchStatus}
         />
       )}
     </>
