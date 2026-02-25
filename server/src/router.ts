@@ -1,10 +1,42 @@
 import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
 import type { CameraConfig } from "./camera.js";
 import { proxyToCamera } from "./camera.js";
 import { handleGetMotion, handlePostMotion } from "./motion.js";
 import { handleGetFtp, handlePostFtp, handleTestFtp } from "./ftp-config.js";
 import { handleFtpWriteTest, handleFtpFiles, handleFtpDownload, handleFtpBasePath, handleFtpDelete } from "./ftp-browser.js";
 import { handleTranscode, handleTranscodeDir } from "./ssh-transcode.js";
+
+const STATIC_DIR = process.env.STATIC_DIR || "";
+
+function serveStatic(req: http.IncomingMessage, res: http.ServerResponse, url: string): boolean {
+  if (!STATIC_DIR) return false;
+
+  let filePath = path.join(STATIC_DIR, url === "/" ? "index.html" : url);
+  const ext = path.extname(filePath);
+  const contentTypes: Record<string, string> = {
+    ".html": "text/html",
+    ".js": "application/javascript",
+    ".css": "text/css",
+    ".json": "application/json",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".svg": "image/svg+xml",
+    ".ico": "image/x-icon",
+  };
+
+  if (!ext || !contentTypes[ext]) {
+    filePath = path.join(filePath, "index.html");
+  }
+
+  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+    res.writeHead(200, { "Content-Type": contentTypes[path.extname(filePath)] || "application/octet-stream" });
+    res.end(fs.readFileSync(filePath));
+    return true;
+  }
+  return false;
+}
 
 export function sendJson(res: http.ServerResponse, status: number, data: unknown) {
   res.writeHead(status, { "Content-Type": "application/json" });
@@ -43,6 +75,8 @@ export function createRouter(config: CameraConfig): http.RequestListener {
         await handleTranscode(config, req, res);
       } else if (url === "/api/ftp/transcode-dir" && method === "POST") {
         await handleTranscodeDir(config, req, res);
+      } else if (serveStatic(req, res, url)) {
+        // static file served
       } else {
         res.writeHead(404);
         res.end();

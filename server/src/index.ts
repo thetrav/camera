@@ -7,7 +7,14 @@ import { createRouter } from "./router.js";
 const PORT = 8080;
 
 function loadEnv() {
-  const envPath = path.join(path.dirname(new URL(import.meta.url).pathname), "..", ".env");
+  if (process.env.FROM_ENV) {
+    return;
+  }
+  const envPath = path.join(
+    path.dirname(new URL(import.meta.url).pathname),
+    "..",
+    ".env",
+  );
   if (!fs.existsSync(envPath)) {
     console.error(
       "Missing .env file — create one with CAM_IP, CAM_USER, CAM_PASS",
@@ -41,7 +48,8 @@ const config: CameraConfig = {
   ip: CAM_IP,
   user: CAM_USER,
   pass: CAM_PASS,
-  basicAuth: "Basic " + Buffer.from(`${CAM_USER}:${CAM_PASS}`).toString("base64"),
+  basicAuth:
+    "Basic " + Buffer.from(`${CAM_USER}:${CAM_PASS}`).toString("base64"),
   sshHost: process.env.SSH_HOST,
   sshUser: process.env.SSH_USER,
   sshKeyPath: process.env.SSH_KEY_PATH,
