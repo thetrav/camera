@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "basic-ftp": "^5.1.0",
+    "ftp-srv": "^4.6.0",
     "ssh2": "^1.17.0"
   }
 }

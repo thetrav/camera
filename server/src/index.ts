@@ -1,8 +1,10 @@
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
+import { FtpSrv } from "ftp-srv";
 import type { CameraConfig } from "./camera.js";
 import { createRouter } from "./router.js";
+import { FtpFileSystem } from "./ftp-filesystem.js";
 
 const PORT = 8080;
 
@@ -63,3 +65,45 @@ server.listen(PORT, () => {
   console.log(`Serving on http://localhost:${PORT}`);
   console.log("Press Ctrl+C to stop");
 });
+
+const FTP_ROOT = process.env.FTP_ROOT;
+const FTP_USER = process.env.FTP_USER;
+const FTP_PASS = process.env.FTP_PASS;
+const FTP_PORT = 21;
+
+if (FTP_ROOT && FTP_USER && FTP_PASS) {
+  if (!fs.existsSync(FTP_ROOT)) {
+    console.error(`FTP root directory does not exist: ${FTP_ROOT}`);
+  } else {
+    const ftpServer = new FtpSrv({
+      url: `ftp://0.0.0.0:${FTP_PORT}`,
+      pasv_url: "0.0.0.0",
+      pasv_min: 30000,
+      pasv_max: 30100,
+    });
+
+    ftpServer.on("client-error", (data) => {
+      console.error("FTP client error:", data.context, data.error);
+    });
+
+    ftpServer.on("login", (data, resolve, reject) => {
+      if (data.username === FTP_USER && data.password === FTP_PASS) {
+        resolve({
+          root: FTP_ROOT,
+          fs: new FtpFileSystem(data.connection, { root: FTP_ROOT, cwd: "." }),
+        });
+      } else {
+        reject(new Error("Invalid credentials"));
+      }
+    });
+
+    ftpServer.listen().then(() => {
+      console.log(`FTP server listening on port ${FTP_PORT}`);
+      console.log(`FTP root: ${FTP_ROOT}`);
+    });
+  }
+} else if (FTP_ROOT || FTP_USER || FTP_PASS) {
+  console.error(
+    "Missing FTP_ROOT, FTP_USER, or FTP_PASS in .env - FTP server not started",
+  );
+}

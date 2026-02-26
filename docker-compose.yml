@@ -1,8 +1,11 @@
 services:
   camera:
     image: camera-app
+    user: ftpuser
     ports:
       - "8080:8080"
+      - "21:21"
+      - "30000-30100:30000-30100"
     environment:
       - CAM_IP=192.168.1.100
       - CAM_USER=admin
@@ -11,8 +14,11 @@ services:
       - SSH_USER=your_ssh_user
       - SSH_KEY_PATH=/home/user/.ssh/id_rsa
       - SSH_FTP_ROOT=/path/to/ftp/root
-      - STATIC_DIR=/app/static
+      - FTP_ROOT=/path/to/ftp/root
+      - FTP_USER=ftpuser
+      - FTP_PASS=ftppass
       - FROM_ENV=true
     volumes:
       - ~/.ssh:/home/node/.ssh:ro
+      - ftp-data:/path/to/ftp/root
     restart: unless-stopped

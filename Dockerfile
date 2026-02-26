@@ -25,12 +25,14 @@ FROM node:22-alpine
 
 WORKDIR /app
 
+RUN adduser -D ftpuser
+
 COPY --from=builder /app/camera-control-hub/dist ./static
 COPY --from=builder /app/server/dist ./server
 COPY --from=builder /app/server/package.json ./server/
 COPY --from=builder /app/server/node_modules ./server/node_modules
 
-ENV STATIC_DIR=/app/dist
+ENV STATIC_DIR=/app/static
 
 WORKDIR /app/server
 
