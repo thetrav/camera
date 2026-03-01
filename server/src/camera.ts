@@ -10,6 +10,7 @@ export interface CameraConfig {
   sshUser?: string;
   sshKeyPath?: string;
   sshFtpRoot?: string;
+  ftpRoot?: string;
 }
 
 function md5(s: string): string {

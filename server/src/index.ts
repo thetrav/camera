@@ -56,6 +56,7 @@ const config: CameraConfig = {
   sshUser: process.env.SSH_USER,
   sshKeyPath: process.env.SSH_KEY_PATH,
   sshFtpRoot: process.env.SSH_FTP_ROOT,
+  ftpRoot: process.env.FTP_ROOT,
 };
 
 const server = http.createServer(createRouter(config));

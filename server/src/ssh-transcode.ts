@@ -1,9 +1,12 @@
 import http from "node:http";
-import fs from "node:fs";
-import { Client } from "ssh2";
+import { exec } from "node:child_process";
+import path from "node:path";
+import { promisify } from "node:util";
 import type { CameraConfig } from "./camera.js";
 import { readBody } from "./camera.js";
 import { sendJson } from "./router.js";
+
+const execAsync = promisify(exec);
 
 interface ExecResult {
   stdout: string;
@@ -11,38 +14,18 @@ interface ExecResult {
   code: number;
 }
 
-function sshExec(config: CameraConfig, command: string): Promise<ExecResult> {
-  return new Promise((resolve, reject) => {
-    if (!config.sshHost || !config.sshUser || !config.sshKeyPath) {
-      return reject(new Error("SSH not configured"));
-    }
-
-    const conn = new Client();
-    conn.on("ready", () => {
-      conn.exec(command, (err, stream) => {
-        if (err) {
-          conn.end();
-          return reject(err);
-        }
-        let stdout = "";
-        let stderr = "";
-        stream.on("data", (data: Buffer) => {
-          stdout += data.toString();
-        });
-        stream.stderr.on("data", (data: Buffer) => {
-          stderr += data.toString();
-        });
-        stream.on("close", (code: number) => {
-          conn.end();
-          resolve({ stdout, stderr, code: code ?? 0 });
-        });
-      });
+function localExec(command: string): Promise<ExecResult> {
+  return new Promise((resolve) => {
+    let stdout = "";
+    let stderr = "";
+    const child = exec(command, { maxBuffer: 1024 * 1024 * 1024 }, (err) => {
+      resolve({ stdout, stderr, code: err ? 1 : 0 });
     });
-    conn.on("error", reject);
-    conn.connect({
-      host: config.sshHost,
-      username: config.sshUser,
-      privateKey: fs.readFileSync(config.sshKeyPath),
+    child.stdout?.on("data", (data) => {
+      stdout += data.toString();
+    });
+    child.stderr?.on("data", (data) => {
+      stderr += data.toString();
     });
   });
 }
@@ -52,8 +35,8 @@ export async function handleTranscode(
   req: http.IncomingMessage,
   res: http.ServerResponse,
 ) {
-  if (!config.sshHost || !config.sshUser || !config.sshKeyPath || !config.sshFtpRoot) {
-    return sendJson(res, 500, { ok: false, error: "SSH not configured" });
+  if (!config.ftpRoot) {
+    return sendJson(res, 500, { ok: false, error: "FTP root not configured" });
   }
 
   const body = JSON.parse((await readBody(req)).toString());
@@ -63,14 +46,14 @@ export async function handleTranscode(
     return sendJson(res, 400, { ok: false, error: "Path must be an .avi file" });
   }
 
-  const fsInput = config.sshFtpRoot + ftpPath;
+  const fsInput = path.join(config.ftpRoot, ftpPath);
   const fsOutput = fsInput.replace(/\.avi$/i, ".mp4");
   const mp4Path = ftpPath.replace(/\.avi$/i, ".mp4");
 
   const cmd = `test -f "${fsOutput}" || (ffmpeg -y -i "${fsInput}" -c:v copy -c:a aac "${fsOutput}" && chmod 777 "${fsOutput}" && rm -f "${fsInput}")`;
 
   try {
-    const result = await sshExec(config, cmd);
+    const result = await localExec(cmd);
     if (result.code !== 0) {
       return sendJson(res, 500, { ok: false, error: result.stderr || "ffmpeg failed" });
     }
@@ -85,8 +68,8 @@ export async function handleTranscodeDir(
   req: http.IncomingMessage,
   res: http.ServerResponse,
 ) {
-  if (!config.sshHost || !config.sshUser || !config.sshKeyPath || !config.sshFtpRoot) {
-    return sendJson(res, 500, { ok: false, error: "SSH not configured" });
+  if (!config.ftpRoot) {
+    return sendJson(res, 500, { ok: false, error: "FTP root not configured" });
   }
 
   const body = JSON.parse((await readBody(req)).toString());
@@ -96,7 +79,7 @@ export async function handleTranscodeDir(
     return sendJson(res, 400, { ok: false, error: "Path is required" });
   }
 
-  const fsDir = config.sshFtpRoot + dirPath;
+  const fsDir = path.join(config.ftpRoot, dirPath);
 
   const script = `
 converted=0
@@ -118,7 +101,7 @@ echo "{\\"converted\\": $converted, \\"skipped\\": $skipped, \\"errors\\": \\"$e
 `;
 
   try {
-    const result = await sshExec(config, script);
+    const result = await localExec(script);
     if (result.code !== 0) {
       return sendJson(res, 500, { ok: false, error: result.stderr || "batch transcode failed" });
     }

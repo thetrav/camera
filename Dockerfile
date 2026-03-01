@@ -25,7 +25,7 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-RUN adduser -D ftpuser
+RUN adduser -D ftpuser && apk add --no-cache ffmpeg
 
 COPY --from=builder /app/camera-control-hub/dist ./static
 COPY --from=builder /app/server/dist ./server
